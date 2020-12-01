@@ -37,3 +37,11 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+data/
+staticData_dontUpload/
+staticDataScripts/
+rsconnect/
+multistationQueryApp/
+*.yml
+*.csv

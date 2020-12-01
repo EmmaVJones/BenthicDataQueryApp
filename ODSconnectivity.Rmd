@@ -1,0 +1,25 @@
+---
+title: "ODS connectivity"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(DBI)
+library(tidyverse)
+library(pool)
+
+```
+
+Test connection string
+
+```{r connect}
+con <- dbConnect(odbc::odbc(), .connection_string = 'driver={SQLServer};server={DEQ-SQLODS-PROD,50000};database={ODS};trusted_connection=yes')
+```
+
+Test pulling data
+
+```{r pull}
+masterTaxaGenus <- dbGetQuery(con, 'SELECT * FROM "ODS"."dbo"."Edas_Benthic_Master_Taxa_View"')
+```
+
