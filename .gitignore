@@ -42,6 +42,6 @@ data/
 staticData_dontUpload/
 staticDataScripts/
 rsconnect/
-multistationQueryApp/
+multiStationQueryApp/
 *.yml
 *.csv

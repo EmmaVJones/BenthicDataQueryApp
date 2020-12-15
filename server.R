@@ -72,11 +72,33 @@ shinyServer(function(input, output, session) {
     WQM_Station_Full_REST <- suppressWarnings(
       geojson_sf(
         paste0("https://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%27",
-               toupper(input$station),"%27&outFields=*&f=geojson"))) %>%
-      mutate(WQM_YRS_YEAR = ifelse(!is.na(WQM_YRS_YEAR), lubridate::year(as.Date(as.POSIXct(WQM_YRS_YEAR/1000, origin="1970-01-01"))), NA))
+               toupper(input$station),"%27&outFields=*&f=geojson")))
     
-    WQM_Station_Full_REST <- bind_cols(WQM_Station_Full_REST, st_coordinates(WQM_Station_Full_REST) %>% as.tibble()) %>%
-      mutate(Latitude = Y, Longitude = X) # add lat/lng in DD
+    if(nrow(WQM_Station_Full_REST ) > 0){
+      WQM_Station_Full_REST <- mutate(WQM_Station_Full_REST, WQM_YRS_YEAR = ifelse(!is.na(WQM_YRS_YEAR), lubridate::year(as.Date(as.POSIXct(WQM_YRS_YEAR/1000, origin="1970-01-01"))), NA))
+      WQM_Station_Full_REST <- bind_cols(WQM_Station_Full_REST, st_coordinates(WQM_Station_Full_REST) %>% as.tibble()) %>%
+        mutate(Latitude = Y, Longitude = X) # add lat/lng in DD
+    } else { # station doesn't yet exist in WQM full dataset
+      # get what we can from CEDS
+      stationGISInfo <- pool %>% tbl( "WQM_Sta_GIS_View") %>%
+        filter(Station_Id %in% !! toupper(input$station)) %>%
+        as_tibble() 
+      # pull a known station to steal data structure
+      WQM_Station_Full_REST <- suppressWarnings(
+        geojson_sf(
+          paste0("https://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%272-JKS023.61%27&outFields=*&f=geojson")))[1,] %>%
+        mutate(WQM_YRS_YEAR = ifelse(!is.na(WQM_YRS_YEAR), lubridate::year(as.Date(as.POSIXct(WQM_YRS_YEAR/1000, origin="1970-01-01"))), NA)) %>%
+        st_drop_geometry()
+      WQM_Station_Full_REST <- bind_rows(WQM_Station_Full_REST[0,],
+                                         tibble(STATION_ID = stationGISInfo$Station_Id, 
+                                                Latitude = stationGISInfo$Latitude,
+                                                Longitude = stationGISInfo$Longitude,
+                                                BASINS_HUC_8_NAME = stationGISInfo$Huc6_Huc_8_Name, 
+                                                BASINS_VAHU6 = stationGISInfo$Huc6_Vahu6) ) %>%
+        st_as_sf(coords = c("Longitude", "Latitude"),  # make spatial layer using these columns
+                 remove = F, # don't remove these lat/lon cols from df
+                 crs = 4326)    }
+
     return(WQM_Station_Full_REST)})
      
 
@@ -498,6 +520,7 @@ shinyServer(function(input, output, session) {
     output$benthicIndividualsBensampCrosstab <- DT::renderDataTable({
       req(stationBenthicsDateRange(), input$genusOrFamily)
       z <- benthics_crosstab_Billy(stationBenthicsDateRange(), masterTaxaGenus, genusOrFamily = input$genusOrFamily)
+      print(z)
       
       datatable(z, #dplyr::select(z, StationID:`Collection Date`) %>% dplyr::select(-c(`Collection Date`)), # crazy way to include unexpected columns
                 rownames = F, escape= F, extensions = 'Buttons',

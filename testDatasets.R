@@ -27,7 +27,7 @@ onStop(function() {
 })
 
 
-station <- '2-JKS023.61'#"IR2019V2151A"#"1ASAN001.45"#"1ASAN000.34"#'2-JKS023.61'
+station <- '2-SPC002.12'#'2-JKS023.61'#"IR2019V2151A"#"1ASAN001.45"#"1ASAN000.34"#'2-JKS023.61'
 
 masterTaxaGenus <- pool %>% tbl("Edas_Benthic_Master_Taxa_View") %>%
   as_tibble() %>%

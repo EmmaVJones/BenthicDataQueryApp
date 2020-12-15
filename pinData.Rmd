@@ -128,6 +128,7 @@ benSamps <- pool %>% tbl("Edas_Benthic_Sample_View") %>%
                                   TRUE ~ as.character("Outside Sample Window"))) %>%
         dplyr::select(StationID, BenSampID, RepNum, `Collection Date`, `Sample Comments`, `Collected By`, `Field Team`, `Entered By`,
                       Taxonomist, `Entered Date`, Gradient, `Target Count`, Season)
+
 ```
 
 
