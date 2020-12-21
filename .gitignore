@@ -45,3 +45,4 @@ rsconnect/
 multiStationQueryApp/
 *.yml
 *.csv
+*.xlsx
