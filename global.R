@@ -30,14 +30,14 @@ board_register_rsconnect(key = conn$CONNECT_API_KEY,  #Sys.getenv("CONNECT_API_K
 
 
 # Set up pool connection to production environment
-pool <- dbPool(
-  drv = odbc::odbc(),
-  Driver = "SQLServer",   # note the LACK OF space between SQL and Server ( how RStudio named driver)
+#pool <- dbPool(
+#  drv = odbc::odbc(),
+#  Driver = "SQLServer",   # note the LACK OF space between SQL and Server ( how RStudio named driver)
   # Production Environment
-  Server= "DEQ-SQLODS-PROD,50000",
-  dbname = "ODS",
-  UID = conn$UID_prod, 
-  PWD = conn$PWD_prod,
+#  Server= "DEQ-SQLODS-PROD,50000",
+#  dbname = "ODS",
+#  UID = conn$UID_prod, 
+#  PWD = conn$PWD_prod,
   #UID = Sys.getenv("userid_production"), # need to change in Connect {vars}
   #PWD = Sys.getenv("pwd_production")   # need to change in Connect {vars}
   # Test environment
@@ -45,20 +45,20 @@ pool <- dbPool(
   #dbname = "ODS_test",
   #UID = Sys.getenv("userid"),  # need to change in Connect {vars}
   #PWD = Sys.getenv("pwd"),  # need to change in Connect {vars}
-  trusted_connection = "yes"
-)
+#  trusted_connection = "yes"
+#)
 onStop(function() {
   poolClose(pool)
 })
 
 ## For testing: connect to ODS production
-#pool <- dbPool(
-#  drv = odbc::odbc(),
-#  Driver = "SQL Server Native Client 11.0", 
-#  Server= "DEQ-SQLODS-PROD,50000",
-#  dbname = "ODS",
-#  trusted_connection = "yes"
-#)
+pool <- dbPool(
+  drv = odbc::odbc(),
+  Driver = "SQL Server Native Client 11.0", 
+  Server= "DEQ-SQLODS-PROD,50000",
+  dbname = "ODS",
+  trusted_connection = "yes"
+)
 
 ## For testing: Connect to ODS_test
 # establish db connection locally
@@ -376,9 +376,9 @@ averageSCI_multistation <- function(benSamps_Filter_fin, SCI_filter){
 benthics_crosstab_Billy <- function(benthics_Filter, masterTaxaGenus, genusOrFamily){
   benthics_Filter %>%
     dplyr::select(StationID, BenSampID, `Collection Date`, RepNum, FinalID, Individuals) %>%
-    left_join(dplyr::select(masterTaxaGenus, Order, `Final VA Family ID`, FinalID, TolVal, FamTolVal)) %>%
+    left_join(dplyr::select(masterTaxaGenus, Order, `Final VA Family ID`, FinalID, TolVal, FamTolVal, FFG, FamFFG)) %>%
     {if(genusOrFamily == 'Family')
-      group_by(., StationID, BenSampID, `Collection Date`, RepNum, `Final VA Family ID`, FamTolVal, Order) %>%
+      group_by(., StationID, BenSampID, `Collection Date`, RepNum, `Final VA Family ID`, FamTolVal, FamFFG, Order) %>%
         summarize(Individuals = sum(Individuals)) %>% 
         ungroup()
       else . } %>%
@@ -389,14 +389,14 @@ benthics_crosstab_Billy <- function(benthics_Filter, masterTaxaGenus, genusOrFam
     # have to be creative organizing columns bc don't know what to expect for most
     {if(genusOrFamily == 'Family')
       dplyr::select(., -c(StationID, BenSampID, `Collection Date`, RepNum))
-      else dplyr::select(., -c(StationID, BenSampID, `Collection Date`, RepNum, `Final VA Family ID`, FamTolVal)) } %>%
+      else dplyr::select(., -c(StationID, BenSampID, `Collection Date`, RepNum, `Final VA Family ID`, FamTolVal, FamFFG)) } %>%
     dplyr::select(Order, everything()) %>%
     {if(genusOrFamily == 'Family')
-      pivot_longer(., !c(Order, `Final VA Family ID`, FamTolVal), names_to = 'allTheThings', 
+      pivot_longer(., !c(Order, `Final VA Family ID`, FamTolVal, FamFFG), names_to = 'allTheThings', 
                    values_to = 'Individuals', values_drop_na = TRUE) %>%
         pivot_wider(names_from = allTheThings, values_from = Individuals) %>%
         arrange(`Final VA Family ID`) 
-      else pivot_longer(., !c(Order, FinalID, TolVal), names_to = 'allTheThings', 
+      else pivot_longer(., !c(Order, FinalID, TolVal, FFG), names_to = 'allTheThings', 
                         values_to = 'Individuals', values_drop_na = TRUE) %>%
         pivot_wider(names_from = allTheThings, values_from = Individuals) %>%
         arrange(FinalID) }

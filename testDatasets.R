@@ -161,6 +161,7 @@ stationInfoBenSamps <- pool %>% tbl("Edas_Benthic_Sample_View") %>%
   rename( "StationID" = "STA_ID",
           "BenSampID"  = "WBS_SAMP_ID",
           "RepNum" = "WBS_REP_NUM",
+          "Number of Grids" = "WBS_GRID_NUM",
           "Sample Comments" = "WBS_COMMENT",
           "Entered By" = "WBS_INSERTED_BY", # not in EDAS table but good info
           "Collected By" = "COLLECTOR_NAME",  # not in EDAS table but good info
@@ -177,7 +178,7 @@ stationInfoBenSamps <- pool %>% tbl("Edas_Benthic_Sample_View") %>%
                             monthday >= 0815 & monthday <= 1215 ~ 'Fall',
                             TRUE ~ as.character("Outside Sample Window"))) %>%
   dplyr::select(StationID, BenSampID, RepNum, `Collection Date`, `Sample Comments`, `Collected By`, `Field Team`, `Entered By`,
-                Taxonomist, `Entered Date`, Gradient, `Target Count`, Season)
+                Taxonomist, `Entered Date`, Gradient, `Target Count`, `Number of Grids`, Season)
 
 
 ## Habitat data must be reactive to adjusted to benthic or habitat date filter

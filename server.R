@@ -164,6 +164,7 @@ shinyServer(function(input, output, session) {
         rename( "StationID" = "STA_ID",
                 "BenSampID"  = "WBS_SAMP_ID",
                 "RepNum" = "WBS_REP_NUM",
+                "Number of Grids" = "WBS_GRID_NUM",
                 "Sample Comments" = "WBS_COMMENT",
                 "Entered By" = "WBS_INSERTED_BY", # not in EDAS table but good info
                 "Collected By" = "COLLECTOR_NAME",  # not in EDAS table but good info
@@ -180,7 +181,8 @@ shinyServer(function(input, output, session) {
                                   monthday >= 0815 & monthday <= 1215 ~ 'Fall',
                                   TRUE ~ as.character("Outside Sample Window"))) %>%
         dplyr::select(StationID, BenSampID, RepNum, `Collection Date`, `Sample Comments`, `Collected By`, `Field Team`, `Entered By`,
-                      Taxonomist, `Entered Date`, Gradient, `Target Count`, Season)
+                      Taxonomist, `Entered Date`, Gradient, `Target Count`, `Number of Grids`, Season)
+      
       
       
       ## Habitat data must be reactive to adjusted to benthic or habitat date filter
@@ -363,7 +365,7 @@ shinyServer(function(input, output, session) {
       req(reactive_objects$stationInfoBenSampsDateRange, SCIresults())
       reactive_objects$SCIresults <- SCIresults()  # for report, creates endless loop if not in separate reactive
       reactive_objects$avgSCI <- averageSCI(reactive_objects$stationInfoBenSampsDateRange, SCIresults()) 
-      reactive_objects$sciTable <- dplyr::select(SCIresults(), StationID, `Collection Date`, RepNum, `Target Count`, Season, BenSampID:`SCI Score`) %>% # inclusive of different column types 
+      reactive_objects$sciTable <- dplyr::select(SCIresults(), StationID, `Collection Date`, RepNum, `Target Count`, `Number of Grids`, Season, BenSampID:`SCI Score`) %>% # inclusive of different column types 
         arrange(`Collection Date`)}) # inclusive of different column types 
     
     
@@ -520,7 +522,7 @@ shinyServer(function(input, output, session) {
     output$benthicIndividualsBensampCrosstab <- DT::renderDataTable({
       req(stationBenthicsDateRange(), input$genusOrFamily)
       z <- benthics_crosstab_Billy(stationBenthicsDateRange(), masterTaxaGenus, genusOrFamily = input$genusOrFamily)
-      print(z)
+      #print(z)
       
       datatable(z, #dplyr::select(z, StationID:`Collection Date`) %>% dplyr::select(-c(`Collection Date`)), # crazy way to include unexpected columns
                 rownames = F, escape= F, extensions = 'Buttons',
