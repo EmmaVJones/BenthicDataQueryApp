@@ -776,6 +776,7 @@ shinyServer(function(input, output, session) {
     #      if(is.null(reactive_objects$wildcardResults)){
     #    if(is.null(input$wildcardText)){
     
+    # Query by spatial filter selection
     observeEvent(input$begin_multistation_spatial,{
       reactive_objects$WQM_Stations_Filter <- benSampsStations %>%
         # go small to large spatial filters
@@ -795,10 +796,21 @@ shinyServer(function(input, output, session) {
           filter(., StationID %in% filter(benSamps, as.Date(`Collection Date`) >= input$dateRange_multistation[1] & as.Date(`Collection Date`) <= input$dateRange_multistation[2])$StationID)
           else .} %>%
         rename(., `Total Station Visits (Not Sample Reps)` = "Total.Station.Visits..Not.Sample.Reps.") %>%
-        dplyr::select(StationID, `Total Station Visits (Not Sample Reps)`) 
-      
-    })
+        dplyr::select(StationID, `Total Station Visits (Not Sample Reps)`) })
     
+    
+    # Query by manual selection
+    output$manualSelection <- renderUI({req(input$queryType == 'Manually Specify Stations')
+      list(helpText('Begin typing station names and the app will filter available data by input text. Multiple stations are allowed.'),
+           selectInput('manualSelection','Station ID', choices = unique(benSampsStations$StationID), multiple = T)) })
+    
+    observeEvent(input$begin_multistation_manual, {
+      reactive_objects$WQM_Stations_Filter <- filter(benSampsStations, StationID %in% as.character(input$manualSelection))    })
+    
+      
+      
+      
+      
     output$test <- renderPrint({
       reactive_objects$WQM_Stations_Filter
     })

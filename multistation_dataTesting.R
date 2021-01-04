@@ -1,5 +1,5 @@
 source("global_multi.R")
-source("global.R")
+#source("global.R")
 
 ## SQL FYI using library(sqldf)
 #z <- sqldf('SELECT * FROM benSamps WHERE StationID like "2-JKS0%"')
@@ -23,8 +23,15 @@ subbasinVAHU6crosswalk <- read_csv('data/basinAssessmentReg_clb_EVJ.csv') %>%
 
 
 # user inputs
-queryType <- 'Spatial Filters' #Interactive Selection
+queryType <- 'Manually Specify Stations'#'Spatial Filters' #Interactive Selection
 
+benSampsStations
+
+
+
+
+
+# Spatial filters troubleshooting
 assessmentRegionFilter <- NULL#c("PRO")#unique(subbasins$ASSESS_REG)
 subbasinFilter <- NULL# c("James River - Middle",'Potomac River')#NULL#"James River - Lower"
 #filter(subbasins, ASSESS_REG %in% assessmentRegionFilter) %>%

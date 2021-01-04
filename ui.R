@@ -127,7 +127,9 @@ shinyUI(fluidPage(theme= "yeti.css",
                                         tabPanel("Station Query",
                                                  sidebarPanel(
                                                    helpText("Query pulls data stored on R server. Data is refreshed weekly."),
-                                                   radioButtons('queryType', "How would you like to query stations?", choices = c('Spatial Filters', 'Wildcard Selection')),
+                                                   radioButtons('queryType', "How would you like to query stations?", 
+                                                                choices = c('Spatial Filters', 'Wildcard Selection', 'Manually Specify Stations')),
+                                                   
                                                    # Spatial filters
                                                    conditionalPanel(
                                                      condition = "input.queryType == 'Spatial Filters'",
@@ -147,7 +149,15 @@ shinyUI(fluidPage(theme= "yeti.css",
                                                      uiOutput('wildcardSelection'),
                                                      #helpText('Please reload the application if you want to return to the spatial filtering method.'),
                                                      br(),
-                                                     actionButton('begin_multistation_wildcard', 'Pull Stations',class='btn-block')) ),
+                                                     actionButton('begin_multistation_wildcard', 'Pull Stations',class='btn-block')),
+                                                   
+                                                   # Manually Specify Stations Selection
+                                                   conditionalPanel(
+                                                     condition = "input.queryType == 'Manually Specify Stations'",
+                                                     uiOutput('manualSelection'),
+                                                     br(),
+                                                     actionButton('begin_multistation_manual', 'Pull Stations',class='btn-block')) ),
+                                                 
                                                  mainPanel(
                                                   # verbatimTextOutput('test'),
                                                    
