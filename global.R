@@ -36,7 +36,7 @@ pool <- dbPool(
   # Production Environment
   Server= "DEQ-SQLODS-PROD,50000",
   dbname = "ODS",
-  UID = conn$UID_prod, 
+  UID = conn$UID_prod,
   PWD = conn$PWD_prod,
   #UID = Sys.getenv("userid_production"), # need to change in Connect {vars}
   #PWD = Sys.getenv("pwd_production")   # need to change in Connect {vars}
@@ -52,13 +52,13 @@ onStop(function() {
 })
 
 ## For testing: connect to ODS production
-#pool <- dbPool(
-#  drv = odbc::odbc(),
-#  Driver = "SQL Server Native Client 11.0", 
-#  Server= "DEQ-SQLODS-PROD,50000",
-#  dbname = "ODS",
-#  trusted_connection = "yes"
-#)
+# pool <- dbPool(
+#   drv = odbc::odbc(),
+#   Driver = "SQL Server Native Client 11.0", 
+#   Server= "DEQ-SQLODS-PROD,50000",
+#   dbname = "ODS",
+#   trusted_connection = "yes"
+# )
 
 ## For testing: Connect to ODS_test
 # establish db connection locally

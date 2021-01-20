@@ -7,6 +7,9 @@
 
 
 ### Production Environment
+library(tidyverse)
+library(pool)
+library(config)
 pool <- dbPool(
   drv = odbc::odbc(),
   Driver = "SQL Server Native Client 11.0", 
@@ -55,51 +58,12 @@ masterTaxaGenus <- pool %>% tbl("Edas_Benthic_Master_Taxa_View") %>%
                 Genus, Species, `Final VA Family ID`, FinalID, TolVal, FFG, 
                 Habit, FamFFG, FamTolVal, FamHabit) # keep EDAS Master Taxa list names
 
-#WQM_Station_Full <- suppressWarnings(
-#  geojson_sf(
-#    paste0("https://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=WQM_STA_ID+%3D+%27",
-#           toupper(station), "%27&outFields=*&f=geojson"))) %>%
-#  mutate(WQM_YRS_YEAR = as.Date(as.POSIXct(as.numeric(gsub(" ", ".",gsub("(.{10})", "\\1 ", sprintf("%.0f", WQM_YRS_YEAR)))), origin="1970-01-01")))
-
-
+# Used to pull data directly from REST service until it suddenly stopped working for the server
 WQM_Station_Full_REST <- suppressWarnings(
   geojson_sf(
     paste0("https://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%27",
            toupper(station),"%27&outFields=*&f=geojson"))) %>%
   mutate(WQM_YRS_YEAR = ifelse(!is.na(WQM_YRS_YEAR), lubridate::year(as.Date(as.POSIXct(WQM_YRS_YEAR/1000, origin="1970-01-01"))), NA)) 
-  #mutate(WQM_YRS_YEAR = ifelse(!is.na(WQM_YRS_YEAR), as.Date(as.POSIXct(as.numeric(gsub(" ", ".",gsub("(.{10})", "\\1 ", sprintf("%.0f", WQM_YRS_YEAR)))), origin="1970-01-01")),
-  #                             NA))
-
-
-#suppressWarnings(
-#  geojson_sf(
-#    paste0("https://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%27",
-#           toupper(station),"%27&outFields=*&f=geojson"))) %>%
-#  mutate(WQM_YRS_YEAR = ifelse(!is.na(WQM_YRS_YEAR), as.Date(as.POSIXct(as.numeric(gsub(" ", ".",gsub("(.{10})", "\\1 ", sprintf("%.0f", WQM_YRS_YEAR)))), origin="1970-01-01")),
-#                               NA)) 
-
-
-  
-x <- WQM_Stations_Full$WQM_YRS_YEAR[14:15]
-y <- WQM_STATIONS_FINAL$WQM_YRS_YEAR[1:10]
-
-str_extract(x, "^.{10}")
-substr(x, nchar(x), 3)
-
-lubridate::as_datetime(as.numeric(str_extract(WQM_Stations_Full$WQM_YRS_YEAR, "^.{10}")))
-
-as.POSIXct(as.numeric(str_extract(as.numeric(x), "^.{10}")), origin="1970-01-01")
-as.Date(as.POSIXct(as.numeric(str_extract(WQM_Stations_Full$WQM_YRS_YEAR, "^.{10}")), origin="1970-01-01"))
-
-
-str_split(x)
-as.Date(as.POSIXct(as.numeric(gsub(" ", ".",gsub("(.{10})", "\\1 ", sprintf("%.0f", x)))), origin="1970-01-01"))
-
-as.Date(as.POSIXct(as.numeric(gsub(" ", ".",gsub("(.{10})", "\\1 ", WQM_Stations_Full$WQM_YRS_YEAR))), origin="1970-01-01"))
-
-sprintf("%.5f", x)
-
-strsplit(as.character(x), "(?<=.{10})", perl = TRUE)[[1]]
 
 
 

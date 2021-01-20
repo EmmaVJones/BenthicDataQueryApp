@@ -71,7 +71,7 @@ shinyServer(function(input, output, session) {
 
     WQM_Station_Full_REST <- suppressWarnings(
       geojson_sf(
-        paste0("https://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%27",
+        paste0("http://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%27",
                toupper(input$station),"%27&outFields=*&f=geojson")))
     
     if(nrow(WQM_Station_Full_REST ) > 0){
@@ -86,7 +86,7 @@ shinyServer(function(input, output, session) {
       # pull a known station to steal data structure
       WQM_Station_Full_REST <- suppressWarnings(
         geojson_sf(
-          paste0("https://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%272-JKS023.61%27&outFields=*&f=geojson")))[1,] %>%
+          paste0("http://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%272-JKS023.61%27&outFields=*&f=geojson")))[1,] %>%
         mutate(WQM_YRS_YEAR = ifelse(!is.na(WQM_YRS_YEAR), lubridate::year(as.Date(as.POSIXct(WQM_YRS_YEAR/1000, origin="1970-01-01"))), NA)) %>%
         st_drop_geometry()
       WQM_Station_Full_REST <- bind_rows(WQM_Station_Full_REST[0,],

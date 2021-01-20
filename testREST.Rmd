@@ -1,0 +1,104 @@
+---
+title: "test geojson"
+author: "Emma Jones"
+date: "1/20/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(sf)
+library(shiny)
+library(leaflet)
+library(leaflet.extras)
+library(inlmisc)
+library(DT)
+library(DBI)
+#library(measurements) #only necessary if don't use Rex's dataset for points
+library(plotly)
+library(lubridate)
+library(pool)
+library(geojsonsf)
+library(pins)
+library(sqldf)
+library(config)
+
+
+# get configuration settings
+conn <- config::get("connectionSettings")
+
+board_register_rsconnect(key = conn$CONNECT_API_KEY,  #Sys.getenv("CONNECT_API_KEY"),
+                         server = conn$CONNECT_SERVER)#Sys.getenv("CONNECT_SERVER"))
+
+
+# Set up pool connection to production environment
+pool <- dbPool(
+  drv = odbc::odbc(),
+  Driver = "SQLServer",   # note the LACK OF space between SQL and Server ( how RStudio named driver)
+  # Production Environment
+  Server= "DEQ-SQLODS-PROD,50000",
+  dbname = "ODS",
+  UID = conn$UID_prod,
+  PWD = conn$PWD_prod,
+  #UID = Sys.getenv("userid_production"), # need to change in Connect {vars}
+  #PWD = Sys.getenv("pwd_production")   # need to change in Connect {vars}
+  # Test environment
+  #Server= "WSQ04151,50000",
+  #dbname = "ODS_test",
+  #UID = Sys.getenv("userid"),  # need to change in Connect {vars}
+  #PWD = Sys.getenv("pwd"),  # need to change in Connect {vars}
+  trusted_connection = "yes"
+)
+
+
+```
+
+```{r}
+station <- '2-JKS023.61'
+```
+
+
+REST
+
+```{r}
+WQM_Station_Full_REST <- suppressWarnings(
+       geojson_sf(
+         paste0("http://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%27",
+                toupper(station),"%27&outFields=*&f=geojson")))
+ 
+ WQM_Station_Full_REST
+```
+
+pool
+
+```{r}
+masterTaxaGenus <- pool %>% tbl("Edas_Benthic_Master_Taxa_View") %>%
+      as_tibble() %>%
+      # make columns match expected format
+      rename('Phylum' = 'PHYLUM_NAME',
+             'Class' = 'CLASS_NAME',
+             'Subclass' = 'SUBCLASS_NAME',
+             'Order' = 'ORDER_NAME',
+             'Suborder' = 'SUBORDER_NAME',
+             'Superfamily' = 'SUPERFAMILY_NAME',
+             'Family' = 'FAMILY_NAME',
+             'Subfamily' = 'SUBFAMILY_NAME',
+             'Tribe' = 'TRIBE_NAME',
+             'Genus' = 'GENUS_NAME',
+             'Species' = 'SPECIES_NAME',
+             "Final VA Family ID" =  "WBMT_FINAL_FAMILY_ID",
+             "FinalID" = "WBMT_FINAL_ID",
+             "TolVal" = "WBMT_TOLERANCE_VALUE",
+             "FFG" =   "FEEDING_GROUP", 
+             "Habit" = "HABIT", 
+             "FamFFG" =  "FAMILY_FEEDING_GROUP",
+             "FamTolVal" = "WBMT_FAM_TOLERANCE_VALUE",
+             "FamHabit" ="FAMILY_HABIT") %>% 
+      dplyr::select(Phylum, Class, Subclass, Order, Suborder, Superfamily, Family, Subfamily, Tribe, 
+                    Genus, Species, `Final VA Family ID`, FinalID, TolVal, FFG, 
+                    Habit, FamFFG, FamTolVal, FamHabit)
+masterTaxaGenus
+```
+
