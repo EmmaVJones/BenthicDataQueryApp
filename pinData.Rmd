@@ -201,7 +201,7 @@ Pull WQM Stations Full From GIS REST service.
 
 ```{r wqm_stations_full}
 WQM_Station_Full <- suppressWarnings(
-      geojson_sf("https://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=OBJECTID%3E0&outFields=*&f=geojson")) %>%
+      geojson_sf("http://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=OBJECTID%3E0&outFields=*&f=geojson")) %>%
       mutate(WQM_YRS_YEAR = as.Date(as.POSIXct(as.numeric(gsub(" ", ".",gsub("(.{10})", "\\1 ", sprintf("%.0f", as.numeric(WQM_YRS_YEAR))))), origin="1970-01-01")))
 
 WQM_Station_Full <- bind_cols(WQM_Station_Full, st_coordinates(WQM_Station_Full) %>% as.tibble()) %>%
