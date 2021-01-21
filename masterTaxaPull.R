@@ -9,7 +9,7 @@ conn <- config::get("connectionSettings")
 # establish connection to ODS production
 pool <- dbPool(
   drv = odbc::odbc(),
-  Driver = "SQL Server Native Client 11.0", 
+  Driver = "ODBC Driver 11 for SQL Server",#Driver = "SQL Server Native Client 11.0", 
   Server= "DEQ-SQLODS-PROD,50000",
   dbname = "ODS",
   trusted_connection = "yes"
