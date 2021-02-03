@@ -20,9 +20,12 @@ shinyUI(fluidPage(theme= "yeti.css",
                                                    DT::dataTableOutput('stationInfoTable'),
                                                    br(),
                                                    h4('Sampling Summary'),
+                                                   helpText('The records listed below are limited to records with associated sample codes. Additional 
+                                                            (older) samples could be lacking the sample code but have benthic data for exploration 
+                                                            in subsequent sections of the application.'),
                                                    DT::dataTableOutput('stationInfoSampleCodeMetrics'),
                                                    br(),
-                                                   helpText('Eventually maybe some stats on n sampling events or raw field data?'),
+                                                   #helpText('Eventually maybe some stats on n sampling events or raw field data?'),
                                                    br(), br(), br() # a little breathing room
                                                  )),
                                         tabPanel("Benthic Data",
@@ -169,6 +172,9 @@ shinyUI(fluidPage(theme= "yeti.css",
                                                    DT::dataTableOutput('multistationInfoTable'),
                                                    br(),
                                                    h4('Sampling Summary'),
+                                                   helpText('The records listed below are limited to records with associated sample codes. Additional 
+                                                            (older) samples could be lacking the sample code but have benthic data for exploration 
+                                                            in subsequent sections of the application.'),
                                                    DT::dataTableOutput('multistationInfoSampleMetrics'),
                                                    br(), br(), br() # a little breathing room
                                                  )),
@@ -200,7 +206,13 @@ shinyUI(fluidPage(theme= "yeti.css",
                                                               br()),
                                                      tabPanel('SCI Results',
                                                               h4('SCI Results'),
-                                                              DT::dataTableOutput('multistationSCIresult')),
+                                                              DT::dataTableOutput('multistationSCIresult'),
+                                                              br(), hr(), br(),
+                                                              helpText('The above SCI results are recommended based on station location (Level III Ecoregion) information.
+                                                                       If users need to adjust the SCI used based on best professional judgement, the table below allows
+                                                                       users to see additional SCI scores.'),
+                                                              selectInput('sciChanger', 'SCI Choice', choices = c('VSCI', 'VCPMI + 63', 'VCPMI - 65')),
+                                                              DT::dataTableOutput('SCIresultsAdjusted')),
                                                      tabPanel('Raw Benthic Data',
                                                               tabsetPanel(
                                                                 tabPanel('Crosstab View',

@@ -180,8 +180,10 @@ shinyServer(function(input, output, session) {
                Season = case_when(monthday >= 0215 & monthday <= 0615 ~ 'Spring',
                                   monthday >= 0815 & monthday <= 1215 ~ 'Fall',
                                   TRUE ~ as.character("Outside Sample Window"))) %>%
-        dplyr::select(StationID, BenSampID, RepNum, `Collection Date`, `Sample Comments`, `Collected By`, `Field Team`, `Entered By`,
-                      Taxonomist, `Entered Date`, Gradient, `Target Count`, `Number of Grids`, Season)
+        left_join(dplyr::select(reactive_objects$stationInfoFin, Sta_Id, Sta_Desc)  %>% distinct(Sta_Id, .keep_all = T), by = c('StationID' = 'Sta_Id')) %>%
+        dplyr::select(StationID, Sta_Desc, BenSampID, RepNum, `Collection Date`, `Sample Comments`, `Collected By`, `Field Team`, `Entered By`,
+                      Taxonomist, `Entered Date`, Gradient, `Target Count`, `Number of Grids`, Season) %>%
+        arrange(`Collection Date`)
       
       
       
@@ -336,8 +338,9 @@ shinyServer(function(input, output, session) {
       req(reactive_objects$stationInfoBenSamps, input$dateRange)
       reactive_objects$stationInfoBenSampsDateRange <- filter(reactive_objects$stationInfoBenSamps, as.Date(`Collection Date`) >= input$dateRange[1] & as.Date(`Collection Date`) <= input$dateRange[2]) %>%
         {if(input$rarifiedFilter)
-          filter(., str_detect(BenSampID, 'R110$')) # must end with R110
-          #filter(., grepl( 'R110', BenSampID))
+          filter(.,  `Target Count` == 110)
+          #filter(., str_detect(BenSampID, 'R110$')) # must end with R110
+          ###filter(., grepl( 'R110', BenSampID))
           else . } %>%
         {if(!is.null(input$repFilter))
           filter(., RepNum %in% input$repFilter)
@@ -365,7 +368,7 @@ shinyServer(function(input, output, session) {
       req(reactive_objects$stationInfoBenSampsDateRange, SCIresults())
       reactive_objects$SCIresults <- SCIresults()  # for report, creates endless loop if not in separate reactive
       reactive_objects$avgSCI <- averageSCI(reactive_objects$stationInfoBenSampsDateRange, SCIresults()) 
-      reactive_objects$sciTable <- dplyr::select(SCIresults(), StationID, `Collection Date`, RepNum, `Target Count`, `Number of Grids`, Season, BenSampID:`SCI Score`) %>% # inclusive of different column types 
+      reactive_objects$sciTable <- dplyr::select(SCIresults(), StationID, Sta_Desc, `Collection Date`, RepNum, `Target Count`, `Number of Grids`, Season, BenSampID:`SCI Threshold`) %>% # inclusive of different column types 
         arrange(`Collection Date`)}) # inclusive of different column types 
     
     
@@ -406,7 +409,7 @@ shinyServer(function(input, output, session) {
     ### SCI plotly
     output$SCIplot <- renderPlotly({
       req(SCIresults())
-      if(unique(SCIresults()$SCI) == 'VSCI'){sciLimit <- 60} else {sciLimit <- 42}
+      if(unique(SCIresults()$SCI) == 'VSCI'){sciLimit <- 60} else {sciLimit <- 40}
       
       SCIresults <- SCIresults() %>%
         mutate(SeasonGradient = as.factor(paste0(Season, " (",Gradient,")")),
@@ -429,32 +432,43 @@ shinyServer(function(input, output, session) {
                                                                              "Fall (Riffle)",
                                                                              "Fall (Boatable)",
                                                                              "Fall (MACS)"))#,ordered=T)
-      
-      
-      
-      
-      plot_ly(SCIresults %>% filter(str_detect(BenSampID, 'R110$')), # must end with R110
-              #filter(., grepl( 'R110', BenSampID)), 
+      # organize reps into separate objects so traces don't stack, drop extra levels so colors turn out correctly
+      rep1s <- SCIresults %>% filter(RepNum == 1) %>% droplevels()
+      rep2s <- SCIresults %>% filter(RepNum == 2) %>% droplevels()
+      plot_ly(rep1s,
               x = ~`Collection Date`, y = ~`SCI Score`, type = 'bar', 
-              #plot_ly(SCIresults(), x = ~`Collection Date`, y = ~`SCI Score`, type = 'bar', 
-              color = ~SeasonGradient, width = 0.5, marker = list(color = ~SeasonGradientColor),
-              
-              #color = ~Season, width = 0.5,
-              #marker = list(line = list(width = 1.5)),
+              color = ~SeasonGradient,  #marker = list(color = ~SeasonGradientColor,width = 0.5), # throws off color for some reason
+              stroke = list(color = 'rgb(0, 0, 0)', width = 3),
               hoverinfo="text", text=~paste(sep="<br>",
                                             paste("StationID: ", StationID),
                                             paste("Collection Date: ", as.Date(`Collection Date`)),
+                                            paste('Replicate: ', RepNum),
                                             paste("Collector ID: ",`Collected By`),
                                             paste("BenSampID: ", BenSampID),
                                             paste("SCI Score: ", format(`SCI Score`, digits=2)),
-                                            paste("Gradient: ", Gradient))) %>%
+                                            paste("Gradient: ", Gradient)),
+              name = ~paste('Rep 1', SeasonGradient)) %>%
+        {if(nrow(rep2s) > 0)
+          add_trace(., data = rep2s, inherit = FALSE,
+                    x = ~`Collection Date`, y = ~`SCI Score`, type = 'bar',
+                    color = ~SeasonGradient,  #marker = list(color = ~SeasonGradientColor,width = 0.5), # throws off color for some reason
+                    stroke = list(color = 'rgb(0, 0, 0)', width = 3),
+                    hoverinfo="text", text=~paste(sep="<br>",
+                                                  paste("StationID: ", StationID),
+                                                  paste("Collection Date: ", as.Date(`Collection Date`)),
+                                                  paste('Replicate: ', RepNum),
+                                                  paste("Collector ID: ",`Collected By`),
+                                                  paste("BenSampID: ", BenSampID),
+                                                  paste("SCI Score: ", format(`SCI Score`, digits=2)),
+                                                  paste("Gradient: ", Gradient)),
+                    name = ~paste('Rep 2', SeasonGradient)) 
+          else .} %>%
+        
         layout(#showlegend=FALSE,
           shapes = list(hline(sciLimit , 'red', text="SCI Limit")),
           yaxis=list(title="SCI"),
           xaxis=list(title="Sample Date",tickfont = list(size = 10),
-                     type = 'date',tickformat = "%Y"))
-      
-    })
+                     type = 'date',tickformat = "%Y"))    })
     
     
     
@@ -617,11 +631,12 @@ shinyServer(function(input, output, session) {
       req(habValues_totHab())
       habValues_totHab() %>%
         plot_ly( x = ~`Collection Date`, y = ~`Total Habitat Score`, type = 'bar', 
-                 color = ~Season, width = 0.5,
+                 color = ~Season, width = 0.5, stroke = list(color = 'rgb(0, 0, 0)', width = 3),
                  #marker = list(line = list(width = 1.5)),
                  hoverinfo="text", text=~paste(sep="<br>",
                                                paste("StationID: ", StationID),
                                                paste("Collection Date: ", as.Date(`Collection Date`)),
+                                               paste('Replicate: ', RepNum),
                                                paste("Field Team: ",`Field Team`),
                                                paste("HabSampID: ", HabSampID),
                                                paste("Total Habitat Score: ", `Total Habitat Score`))) %>%
@@ -797,6 +812,9 @@ shinyServer(function(input, output, session) {
           else .} %>%
         rename(., `Total Station Visits (Not Sample Reps)` = "Total.Station.Visits..Not.Sample.Reps.") %>%
         dplyr::select(StationID, `Total Station Visits (Not Sample Reps)`) })
+    
+    
+    
     
     
     # Query by manual selection
@@ -984,7 +1002,7 @@ shinyServer(function(input, output, session) {
     ## Display Station Information
     output$multistationInfoTable <- DT::renderDataTable({
       req(reactive_objects$multistationSelection)
-      datatable(reactive_objects$multistationSelection %>% distinct(Sta_Id, .keep_all = T), 
+      datatable(reactive_objects$multistationSelection %>% distinct(Sta_Id, .keep_all = T) %>% arrange(Sta_Id), 
                 rownames = F, escape= F, extensions = 'Buttons',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$multistationSelection %>% distinct(Sta_Id, .keep_all = T)),
@@ -1012,8 +1030,9 @@ shinyServer(function(input, output, session) {
                   by = c("StationID" = "WQM_STA_ID")) %>%
         # filter by user decisions
         {if(input$multistationRarifiedFilter)
-          filter(., str_detect(BenSampID, 'R110$')) # must end with R110
-          #filter(., grepl( 'R110', BenSampID))
+          filter(.,  `Target Count` == 110)
+          #filter(., str_detect(BenSampID, 'R110$')) # must end with R110
+          ###filter(., grepl( 'R110', BenSampID))
           else . } %>%
         {if(!is.null(input$multistationRepFilter))
           filter(., RepNum %in% input$multistationRepFilter)
@@ -1032,6 +1051,7 @@ shinyServer(function(input, output, session) {
                      end = as.Date(max(reactive_objects$benSamps_Filter$`Collection Date`)))
     })
     
+
     observe({
       req(input$dateRange_benSamps_multistation)
       reactive_objects$benSamps_Filter_UserFilter <- filter(reactive_objects$benSamps_Filter, as.Date(`Collection Date`) >= input$dateRange_benSamps_multistation[1] & as.Date(`Collection Date`) <= input$dateRange_benSamps_multistation[2])
@@ -1048,8 +1068,10 @@ shinyServer(function(input, output, session) {
           left_join(., reactive_objects$benSamps_Filter_fixed, by = 'StationID') %>%
             mutate(EPA_ECO_US_L3NAME = ifelse(is.na(EPA_ECO_US_L3NAME), as.character(US_L3NAME),as.character(EPA_ECO_US_L3NAME)),
                    EPA_ECO_US_L3CODE = ifelse(is.na(EPA_ECO_US_L3CODE), as.character(US_L3CODE),as.character(EPA_ECO_US_L3CODE))) %>%
-            dplyr::select(-c(US_L3CODE,US_L3NAME))
-          else .}
+            dplyr::select(-c(US_L3CODE,US_L3NAME)) 
+          else .} %>%
+        left_join(dplyr::select(reactive_objects$multistationSelection, Sta_Id , Sta_Desc)  %>% distinct(Sta_Id, .keep_all = T), by = c('StationID'= 'Sta_Id')) %>%
+        dplyr::select(StationID, Sta_Desc, everything())
       # raw benthics data
       reactive_objects$benthics_Filter <- filter(benthics, BenSampID %in% reactive_objects$benSamps_Filter_fin$BenSampID) %>%
         left_join(dplyr::select(reactive_objects$benSamps_Filter_fin, BenSampID, `Collection Date`)) %>%
@@ -1077,7 +1099,10 @@ shinyServer(function(input, output, session) {
                                                SeasonGradient == "Fall (Boatable)" ~ "#8DA0CB",
                                                SeasonGradient == "Fall (MACS)" ~ "#8DA0CB",
                                                TRUE ~ as.character(NA)) ) %>%
-        dplyr::select(StationID, BenSampID, `Collection Date`, RepNum, SCI, `SCI Score`, `SCI Threshold`,`Sample Comments`:Season, everything())
+        left_join(dplyr::select(reactive_objects$multistationSelection, Sta_Id , Sta_Desc) %>% 
+                    distinct(Sta_Id, .keep_all = T), 
+                  by = c('StationID'= 'Sta_Id')) %>%
+        dplyr::select(StationID, Sta_Desc, BenSampID, `Collection Date`, RepNum, SCI, `SCI Score`, `SCI Threshold`,`Sample Comments`:Season, everything())
       # Basic Sampling metrics by total selection
       reactive_objects$avgSCIselection <- averageSCI_multistationAVG(reactive_objects$benSamps_Filter_fin, reactive_objects$SCI_filter) %>%
         arrange(SCI)
@@ -1088,7 +1113,7 @@ shinyServer(function(input, output, session) {
       
       # Raw Multistation Habitat Data
       reactive_objects$habSamps_Filter <- filter(habSamps, StationID %in% reactive_objects$WQM_Stations_Filter$StationID) %>%
-        filter(as.Date(`Collection Date`) >= input$dateRange_multistation[1] & as.Date(`Collection Date`) <= input$dateRange_multistation[2]) %>%
+        filter(as.Date(`Collection Date`) >= input$dateRange_benSamps_multistation[1] & as.Date(`Collection Date`) <= input$dateRange_benSamps_multistation[2]) %>%
         # filter by user decisions
         {if(!is.null(input$multistationGradientFilter))
           filter(., Gradient %in% input$multistationGradientFilter)
@@ -1160,7 +1185,7 @@ shinyServer(function(input, output, session) {
     output$multistationBenthicSampleData <- DT::renderDataTable({
       req(reactive_objects$benSamps_Filter_fin)
       datatable(reactive_objects$benSamps_Filter_fin %>% mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
-                  arrange(StationID), 
+                  arrange(StationID, `Collection Date`, RepNum), 
                 rownames = F, escape= F, extensions = 'Buttons',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$benSamps_Filter_fin),
@@ -1171,17 +1196,33 @@ shinyServer(function(input, output, session) {
     output$multistationSCIresult <- DT::renderDataTable({
       req(reactive_objects$SCI_filter)
       datatable(reactive_objects$SCI_filter %>% mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
-                  arrange(StationID), 
+                  arrange(StationID, `Collection Date`, RepNum), 
                 rownames = F, escape= F, extensions = 'Buttons',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$SCI_filter),
                                buttons=list('copy','colvis')))  })
     
     
+    output$SCIresultsAdjusted <- DT::renderDataTable({req(input$sciChanger)
+      # change SCI results based on user choice
+      if(input$sciChanger == 'VSCI'){z <- filter(VSCIresults, BenSampID %in% reactive_objects$benSamps_Filter_fin$BenSampID)}
+      if(input$sciChanger == 'VCPMI + 63'){z <- filter(VCPMI63results, BenSampID %in% reactive_objects$benSamps_Filter_fin$BenSampID)}
+      if(input$sciChanger == 'VCPMI - 65'){z <- filter(VCPMI65results, BenSampID %in% reactive_objects$benSamps_Filter_fin$BenSampID)}
+      z <- dplyr::select(z, StationID:`Collection Date`, BenSampID, everything()) %>%
+        arrange(StationID, `Collection Date`, RepNum)
+      
+      datatable(z, rownames = F, escape= F, extensions = 'Buttons',
+                options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
+                               pageLength = nrow(z), buttons=list('copy','colvis')))  })
+    
+    
+    
     # Raw benthics data crosstab and long
     output$rawMultistationBenthicCrosstab <- DT::renderDataTable({
       req(reactive_objects$benthics_Filter_crosstab)
-      datatable(reactive_objects$benthics_Filter_crosstab %>% mutate(`Collection Date` = as.Date(`Collection Date`)), 
+      datatable(reactive_objects$benthics_Filter_crosstab %>% 
+                  mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
+                  arrange(StationID, `Collection Date`, RepNum), 
                 rownames = F, escape= F, extensions = 'Buttons',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$benthics_Filter_crosstab),
@@ -1189,7 +1230,9 @@ shinyServer(function(input, output, session) {
     
     output$rawMultistationBenthic <- DT::renderDataTable({
       req(reactive_objects$benthics_Filter)
-      datatable(reactive_objects$benthics_Filter %>% mutate(`Collection Date` = as.Date(`Collection Date`)), 
+      datatable(reactive_objects$benthics_Filter %>%
+                  mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
+                  arrange(StationID, `Collection Date`, RepNum), 
                 rownames = F, escape= F, extensions = 'Buttons',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$benthics_Filter),
@@ -1206,7 +1249,8 @@ shinyServer(function(input, output, session) {
     
     output$SCIseasonalCrosstab_multistation <- DT::renderDataTable({
       req(reactive_objects$benthics_Filter, reactive_objects$SCI_filter, input$metric_multistation)
-      z <- SCI_crosstab_Billy(crosstabTemplate, reactive_objects$SCI_filter, WQM_Station_Full, input$metric_multistation)#`%Ephem`)#`SCI Score`)
+      z <- SCI_crosstab_Billy(crosstabTemplate, reactive_objects$SCI_filter, WQM_Station_Full, input$metric_multistation) %>%#`%Ephem`)#`SCI Score`)
+        arrange(StationID, RepNum)
       
       datatable(z, 
         #dplyr::select(z, StationID:`Collection Date`) %>% dplyr::select(-c(`Collection Date`)), # crazy way to include unexpected columns
@@ -1282,7 +1326,7 @@ shinyServer(function(input, output, session) {
         arrange(HabParameterDescription) %>% ungroup() %>%
         pivot_wider(id_cols = c('StationID','HabSampID','Collection Date'), names_from = HabParameterDescription, values_from = HabValue) %>%
         left_join(dplyr::select(reactive_objects$habValues_totHab_multistation, HabSampID, `Total Habitat Score`), by = 'HabSampID') %>%
-        arrange(StationID)    })
+        arrange(StationID, `Collection Date`)    })
     
     output$habitatValuesCrosstab_multistation <- DT::renderDataTable({
       req(habitatValuesCrosstab_multistation())
@@ -1300,7 +1344,7 @@ shinyServer(function(input, output, session) {
         group_by(HabSampID) %>%
         arrange(ObsParameterDescription) %>%
         pivot_wider(id_cols = c('StationID','HabSampID','Collection Date'), names_from = ObsParameterDescription, values_from = ObsValue) %>%
-        arrange(StationID)    })
+        arrange(StationID, `Collection Date`)    })
     
     output$habitatObservationsCrossTab_multistation <- DT::renderDataTable({
       req(habitatObservationsCrossTab_multistation())
@@ -1320,7 +1364,7 @@ shinyServer(function(input, output, session) {
                           by = 'HabSampID') %>%
                   dplyr::select(StationID, HabSampID, `Collection Date`, everything()) %>%
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
-                  arrange(StationID), 
+                  arrange(StationID, `Collection Date`), 
                 rownames = F, escape= F, extensions = 'Buttons', 
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$habValues_Filter), buttons=list('copy','colvis')))  })
@@ -1332,7 +1376,7 @@ shinyServer(function(input, output, session) {
                           by = 'HabSampID') %>%
                   dplyr::select(StationID, HabSampID, `Collection Date`, everything()) %>%
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
-                  arrange(StationID), 
+                  arrange(StationID, `Collection Date`), 
                 rownames = F, escape= F, extensions = 'Buttons',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$habObs_Filter), buttons=list('copy','colvis') )) })

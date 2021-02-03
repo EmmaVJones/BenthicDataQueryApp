@@ -1,4 +1,4 @@
-source("global_multi.R")
+#source("global_multi.R")
 #source("global.R")
 
 ## SQL FYI using library(sqldf)
@@ -23,26 +23,30 @@ subbasinVAHU6crosswalk <- read_csv('data/basinAssessmentReg_clb_EVJ.csv') %>%
 
 
 # user inputs
-queryType <- 'Manually Specify Stations'#'Spatial Filters' #Interactive Selection
+queryType <- 'Manually Specify Stations'#'Spatial Filters' #Interactive Selection #'Manually Specify Stations'
 
-benSampsStations
 
+# manually specify troubleshooting
+manualSelection1 <- c('1BSMT001.53','1BSMT006.62','1BSMT009.08')#1AFOU002.06')
+WQM_Stations_Filter <- filter(benSampsStations, StationID %in% as.character(manualSelection1))  
+# skip down to multistationInfoFin
 
 
 
 
 # Spatial filters troubleshooting
-assessmentRegionFilter <- NULL#c("PRO")#unique(subbasins$ASSESS_REG)
-subbasinFilter <- NULL# c("James River - Middle",'Potomac River')#NULL#"James River - Lower"
+### begin
+assessmentRegionFilter <- c("PRO")#NULL#c("PRO")#unique(subbasins$ASSESS_REG)
+subbasinFilter <- c("James River - Middle",'Potomac River')#NULL# c("James River - Middle",'Potomac River')#NULL#"James River - Lower"
 #filter(subbasins, ASSESS_REG %in% assessmentRegionFilter) %>%
 #  distinct(SUBBASIN) %>% st_drop_geometry() %>%  pull()
-VAHU6Filter <- 'JU11'#NULL 
+VAHU6Filter <- NULL#'JU11'#NULL 
 #filter(st_drop_geometry(subbasins), SUBBASIN %in% subbasinFilter[1:2]) %>%
 #  left_join(subbasinVAHU6crosswalk, by='SUBBASIN') %>%
 #  left_join(st_drop_geometry(assessmentLayer), by=c('SubbasinVAHU6code'='VAHUSB') ) %>%
 #  distinct(VAHU6) %>% pull()
 ecoregionFilter <- NULL#"Blue Ridge"#unique(ecoregion$US_L3NAME)
-dateRange_multistation <- c(as.Date('2010-01-01'), as.Date(Sys.Date()- 7))
+dateRange_multistation <- c(as.Date('2000-01-01'), as.Date(Sys.Date()- 7))
 
 WQM_Stations_Filter <- benSampsStations %>%
   # go small to large spatial filters
@@ -63,7 +67,9 @@ WQM_Stations_Filter <- benSampsStations %>%
     else .} %>%
   rename(., `Total Station Visits (Not Sample Reps)` = "Total.Station.Visits..Not.Sample.Reps.") %>%
   dplyr::select(StationID, `Total Station Visits (Not Sample Reps)`)
-  
+### end  
+
+
 
 multistationInfoFin <- left_join(Wqm_Stations_View %>%  # need to repull data instead of calling stationInfo bc app crashes
                                    filter(Sta_Id %in% WQM_Stations_Filter$StationID) %>%
@@ -78,7 +84,7 @@ multistationInfoFin <- left_join(Wqm_Stations_View %>%  # need to repull data in
                                                                            ";2020%20Draft%20ADB%20WQA%20Layers;2020%20Rivers%20(Any%20Use)&level=14' target='_blank'>View Monitoring Station in DEQ Staff App</a></b>" )) %>%
                                    dplyr::select(Sta_Id, Sta_Desc, `CEDS Station View Link`, `DEQ GIS Web App Link`, everything()), 
                                  ########filter(WQM_Station_View, Sta_Id %in% toupper(input$station)), # need to filter instead of calling stationInfo bc app crashes
-                                 dplyr::select(WQM_Station_Full, 
+                                 dplyr::select(filter(WQM_Station_Full, STATION_ID %in% WQM_Stations_Filter$StationID), 
                                                STATION_ID, WQM_STA_STRAHER_ORDER, EPA_ECO_US_L3CODE,
                                                EPA_ECO_US_L3NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
                                                WQS_SPSTDS, WQS_PWS, WQS_TROUT, WQS_TIER_III, WQM_YRS_YEAR, WQM_YRS_SPG_CODE),
@@ -149,8 +155,8 @@ CreateWebMap(maps = c("Topo","Imagery","Hydrography"), collapsed = TRUE,
 # stations to be used
 WQM_Stations_Filter
 
-multistationRarifiedFilter <- TRUE
-multistationRepFilter <- c('1')
+multistationRarifiedFilter <- FALSE#TRUE
+multistationRepFilter <- NULL#c('1')
 
 # filter BenSamps & HabSamps to the stations selected and date range
 benSamps_Filter <- filter(benSamps, StationID %in% multistationSelection$Sta_Id) %>%
@@ -168,7 +174,7 @@ benSamps_Filter <- filter(benSamps, StationID %in% multistationSelection$Sta_Id)
     else . } 
 
 # offer date range filter for benthics
-dateRange_benSamps_multistation <- c(as.Date('2014-01-01'), #as.Date(min(benSamps_Filter$`Collection Date`)),
+dateRange_benSamps_multistation <- c(as.Date(min(benSamps_Filter$`Collection Date`)), #as.Date('2014-01-01'), 
                                      as.Date(max(benSamps_Filter$`Collection Date`)))# c(as.Date('2016-01-01'), as.Date(Sys.Date()- 7))
 benSamps_Filter_UserFilter <- filter(benSamps_Filter, `Collection Date` >= dateRange_benSamps_multistation[1] & `Collection Date` <= dateRange_benSamps_multistation[2])
 
@@ -187,7 +193,9 @@ benSamps_Filter_fin <- benSamps_Filter_UserFilter %>%
       mutate(EPA_ECO_US_L3NAME = ifelse(is.na(EPA_ECO_US_L3NAME), as.character(US_L3NAME),as.character(EPA_ECO_US_L3NAME)),
         EPA_ECO_US_L3CODE = ifelse(is.na(EPA_ECO_US_L3CODE), as.character(US_L3CODE),as.character(EPA_ECO_US_L3CODE))) %>%
       dplyr::select(-c(US_L3CODE,US_L3NAME))
-    else .}
+    else .} %>%
+  left_join(dplyr::select(multistationSelection, Sta_Id , Sta_Desc) %>% distinct(Sta_Id, .keep_all = T), by = c('StationID'= 'Sta_Id')) %>%
+  dplyr::select(StationID, Sta_Desc, everything())
     
 
   
@@ -202,7 +210,7 @@ benthics_Filter_crosstab <- benthics_Filter %>%
   arrange(StationID, `Collection Date`)
 
 habSamps_Filter <- filter(habSamps, StationID %in% WQM_Stations_Filter$StationID) %>%
-  filter(`Collection Date` >= dateRange_multistation[1] & `Collection Date` <= dateRange_multistation[2])
+  filter(`Collection Date` >= dateRange_benSamps_multistation[1] & `Collection Date` <= dateRange_benSamps_multistation[2])
 habObs_Filter <- filter(habObs, HabSampID %in% habSamps_Filter$HabSampID)
 habValues_Filter <- filter(habValues, HabSampID %in% habSamps_Filter$HabSampID)
 
@@ -225,7 +233,11 @@ SCI_filter <- filter(VSCIresults, BenSampID %in% filter(benSamps_Filter_fin, ! E
                                          SeasonGradient == "Fall (Boatable)" ~ "#8DA0CB",
                                          SeasonGradient == "Fall (MACS)" ~ "#8DA0CB",
                                          TRUE ~ as.character(NA)) ) %>%
-  dplyr::select(StationID, BenSampID, `Collection Date`, RepNum, SCI, `SCI Score`, `SCI Threshold`,`Sample Comments`:Season, everything())
+  left_join(dplyr::select(multistationSelection, Sta_Id , Sta_Desc) %>% 
+              distinct(Sta_Id, .keep_all = T), 
+            by = c('StationID'= 'Sta_Id')) %>%
+  #left_join(dplyr::select(WQM_Station_Full, WQM_STA_ID, WQM_STA_DESC), by = c('StationID'= 'WQM_STA_ID')) %>%
+  dplyr::select(StationID, Sta_Desc, BenSampID, `Collection Date`, RepNum, SCI, `SCI Score`, `SCI Threshold`,`Sample Comments`:Season, everything())
 #SCI_filter$Season <- factor(SCI_filter$Season,levels=c("Spring","Outside Sample Window","Fall"))#,ordered=T)
 
 # Basic sampling metrics

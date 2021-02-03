@@ -12,7 +12,7 @@ library(pool)
 library(config)
 pool <- dbPool(
   drv = odbc::odbc(),
-  Driver = "SQL Server Native Client 11.0", 
+  Driver = "ODBC Driver 11 for SQL Server",#Driver = "SQL Server Native Client 11.0",
   Server= "DEQ-SQLODS-PROD,50000",
   dbname = "ODS",
   trusted_connection = "yes"
@@ -30,7 +30,7 @@ onStop(function() {
 })
 
 
-station <- '2-SPC002.12'#'2-JKS023.61'#"IR2019V2151A"#"1ASAN001.45"#"1ASAN000.34"#'2-JKS023.61'
+station <- '1AFOU002.06'#'4AROA198.08'#'2-JKS023.61'#'2-SPC002.12'#"IR2019V2151A"#"1ASAN001.45"#"1ASAN000.34"#'2-JKS023.61'
 
 masterTaxaGenus <- pool %>% tbl("Edas_Benthic_Master_Taxa_View") %>%
   as_tibble() %>%
@@ -141,8 +141,10 @@ stationInfoBenSamps <- pool %>% tbl("Edas_Benthic_Sample_View") %>%
          Season = case_when(monthday >= 0215 & monthday <= 0615 ~ 'Spring',
                             monthday >= 0815 & monthday <= 1215 ~ 'Fall',
                             TRUE ~ as.character("Outside Sample Window"))) %>%
-  dplyr::select(StationID, BenSampID, RepNum, `Collection Date`, `Sample Comments`, `Collected By`, `Field Team`, `Entered By`,
-                Taxonomist, `Entered Date`, Gradient, `Target Count`, `Number of Grids`, Season)
+  left_join(dplyr::select(stationInfoFin, Sta_Id, Sta_Desc) %>% distinct(Sta_Id, .keep_all = T) , by = c('StationID' = 'Sta_Id')) %>%
+  dplyr::select(StationID, Sta_Desc, BenSampID, RepNum, `Collection Date`, `Sample Comments`, `Collected By`, `Field Team`, `Entered By`,
+                Taxonomist, `Entered Date`, Gradient, `Target Count`, `Number of Grids`, Season) %>%
+  arrange(`Collection Date`)
 
 
 ## Habitat data must be reactive to adjusted to benthic or habitat date filter
@@ -216,12 +218,13 @@ habObsStation <- pool %>% tbl("Edas_Habitat_Observations_View") %>%
 # Display benthic sampling metrics
 dateRange <- c(min(stationInfoBenSamps$`Collection Date`), #as.POSIXct("2010-04-30"), 
                max(stationInfoBenSamps$`Collection Date`))# Sys.Date())#
-rarifiedFilter <- FALSE#TRUE
+rarifiedFilter <- TRUE
 repFilter <- NULL
 
 stationInfoBenSampsDateRange <- filter(stationInfoBenSamps, `Collection Date` >= dateRange[1] & `Collection Date` <= dateRange[2]) %>%
   {if(rarifiedFilter)
-    filter(., grepl( 'R110', BenSampID))
+    filter(.,  `Target Count` == 110)
+    #filter(., grepl( 'R110', BenSampID))
     else . } %>%
   {if(!is.null(repFilter))
     filter(., RepNum %in% repFilter)
@@ -234,7 +237,8 @@ stationBenthicsDateRange <- filter(stationBenthics, BenSampID %in% stationInfoBe
 crosstabBenthicsRaw <- stationBenthicsDateRange %>%
   group_by(StationID, BenSampID, `Collection Date`, RepNum) %>%
   arrange(FinalID) %>%
-  pivot_wider(id_cols = c('StationID','BenSampID','Collection Date', 'RepNum'), names_from = FinalID, values_from = Individuals)
+  pivot_wider(id_cols = c('StationID','BenSampID','Collection Date', 'RepNum'), names_from = FinalID, values_from = Individuals) %>%
+  arrange(`Collection Date`)
 
 
 glimpse(stationBenthicsFilterOptions)
@@ -286,18 +290,104 @@ benthics_crosstab_Billy(stationBenthicsDateRange, #benthics_Filter,
 # make plotly to barplot any of the metrics selected
 
 
-if(unique(SCIresults$SCI) == 'VSCI'){sciLimit <- 60} else {sciLimit <- 42}
+if(unique(SCIresults$SCI) == 'VSCI'){sciLimit <- 60} else {sciLimit <- 40}
+
+
+SCIresults1 <- SCIresults %>%
+  mutate(SeasonGradient = as.factor(paste0(Season, " (",Gradient,")")),
+         SeasonGradientColor = case_when(SeasonGradient == "Spring (Riffle)" ~  "#66C2A5",
+                                         SeasonGradient == "Spring (Boatable)" ~  "#66C2A5",
+                                         SeasonGradient == "Spring (MACS)" ~  "#66C2A5",
+                                         SeasonGradient == "Outside Sample Window (Riffle)" ~ "#FC8D62",
+                                         SeasonGradient == "Outside Sample Window (Boatable)" ~ "#FC8D62",
+                                         SeasonGradient == "Outside Sample Window (MACS)" ~ "#FC8D62",
+                                         SeasonGradient == "Fall (Riffle)" ~ "#8DA0CB",
+                                         SeasonGradient == "Fall (Boatable)" ~ "#8DA0CB",
+                                         SeasonGradient == "Fall (MACS)" ~ "#8DA0CB",
+                                         TRUE ~ as.character(NA)) )
+SCIresults1$SeasonGradient <- factor(SCIresults1$SeasonGradient,levels=c("Spring (Riffle)",
+                                                                       "Spring (Boatable)",
+                                                                       "Spring (MACS)",
+                                                                       "Outside Sample Window (Riffle)",
+                                                                       "Outside Sample Window (Boatable)",
+                                                                       "Outside Sample Window (MACS)",
+                                                                       "Fall (Riffle)",
+                                                                       "Fall (Boatable)",
+                                                                       "Fall (MACS)"))#,ordered=T)
+
+SCIresults1 <- SCIresults1 %>% 
+  droplevels()
+levels(SCIresults1$SeasonGradient)
+
+rep1s <- SCIresults1 %>% filter(RepNum == 1)%>% 
+  droplevels()
+levels(rep1s$SeasonGradient)
+
+rep2s <-  SCIresults1 %>% ungroup %>% filter(RepNum == 2)%>% 
+  droplevels()
+levels(rep2s$SeasonGradient)
+
+plot_ly(rep1s,
+        x = ~`Collection Date`, y = ~`SCI Score`, type = 'bar', 
+        color = ~SeasonGradient,  #marker = list(color = ~SeasonGradientColor,width = 0.5), # throws off color for some reason
+        stroke = list(color = 'rgb(0, 0, 0)',
+                      width = 3),
+        hoverinfo="text", text=~paste(sep="<br>",
+                                      paste("StationID: ", StationID),
+                                      paste("Collection Date: ", as.Date(`Collection Date`)),
+                                      paste('Replicate: ', RepNum),
+                                      paste("Collector ID: ",`Collected By`),
+                                      paste("BenSampID: ", BenSampID),
+                                      paste("SCI Score: ", format(`SCI Score`, digits=2)),
+                                      paste("Gradient: ", Gradient)),
+        name = ~paste('Rep 1', SeasonGradient)) %>%
+  {if(nrow(rep2s) > 0)
+    add_trace(., data = rep2s, inherit = FALSE,
+              x = ~`Collection Date`, y = ~`SCI Score`, type = 'bar',
+              color = ~SeasonGradient,  #marker = list(color = ~SeasonGradientColor,width = 0.5), # throws off color for some reason
+              stroke = list(color = 'rgb(0, 0, 0)', width = 3),
+              hoverinfo="text", text=~paste(sep="<br>",
+                                            paste("StationID: ", StationID),
+                                            paste("Collection Date: ", as.Date(`Collection Date`)),
+                                            paste('Replicate: ', RepNum),
+                                            paste("Collector ID: ",`Collected By`),
+                                            paste("BenSampID: ", BenSampID),
+                                            paste("SCI Score: ", format(`SCI Score`, digits=2)),
+                                            paste("Gradient: ", Gradient)),
+              name = ~paste('Rep 2', SeasonGradient)) 
+    else .} %>%
+  
+  layout(#showlegend=FALSE,
+    shapes = list(hline(sciLimit , 'red', text="SCI Limit")),
+    yaxis=list(title="SCI"),
+    xaxis=list(title="Sample Date",tickfont = list(size = 10),
+               type = 'date',tickformat = "%Y"))
+
+
+
+
+sciTable <- dplyr::select(SCIresults, StationID, Sta_Desc, `Collection Date`, RepNum, `Target Count`, `Number of Grids`, Season, BenSampID:`SCI Threshold`) %>% # inclusive of different column types 
+  arrange(`Collection Date`)
+
+
+
+
+
+
+
 
 SCIresults %>%
   group_by(BenSampID, Gradient) %>%
 
 plot_ly(#SCIresults,
   x = ~`Collection Date`, y = ~`SCI Score`, type = 'bar', 
-          color = ~Season, width = 0.5,
+          color = ~Season, width = 0.5, stroke = list(color = 'rgb(0, 0, 0)',
+                                                      width = 3),
           #marker = list(line = list(width = 1.5)),
           hoverinfo="text", text=~paste(sep="<br>",
                                         paste("StationID: ", StationID),
                                         paste("Collection Date: ", `Collection Date`),
+                                        paste('Replicate: ', RepNum),
                                         paste("Collector ID: ",`Collected By`),
                                         paste("BenSampID: ", BenSampID),
                                         paste("SCI Score: ", `SCI Score`))) %>%

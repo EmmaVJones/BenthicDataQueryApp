@@ -54,7 +54,7 @@ onStop(function() {
 ## For testing: connect to ODS production
 # pool <- dbPool(
 #   drv = odbc::odbc(),
-#   Driver = "ODBC Driver 11 for SQL Server",#Driver = "SQL Server Native Client 11.0", 
+#   Driver = "ODBC Driver 11 for SQL Server",#Driver = "SQL Server Native Client 11.0",
 #   Server= "DEQ-SQLODS-PROD,50000",
 #   dbname = "ODS",
 #   trusted_connection = "yes"
@@ -211,11 +211,11 @@ SCI <- function(stationBenthicsDateRange, SCIchoice, benSamps, masterTaxaGenus, 
     rename("SCI Score" ="Fam SCI")}
   if(SCIchoice == 'VCPMI + 63'){SCI <- VCPMI63calculation(bugTraits,exclusionMath,vmast) %>%
     mutate(SCI = 'VCPMI + 63',
-           `SCI Threshold` = 42) %>% 
+           `SCI Threshold` = 40) %>% 
     rename("SCI Score" ="CPMI63+CHOWAN")}
   if(SCIchoice == 'VCPMI - 65'){SCI <- VCPMI65calculation(bugTraits,exclusionMath,vmast) %>%
     mutate(SCI = 'VCPMI - 65',
-           `SCI Threshold` = 42) %>% 
+           `SCI Threshold` = 40) %>% 
     rename("SCI Score" ="CPMI65-CHOWAN")}
   
   SCI <- left_join(SCI, benSamps, by = 'BenSampID')
@@ -382,7 +382,7 @@ benthics_crosstab_Billy <- function(benthics_Filter, masterTaxaGenus, genusOrFam
         summarize(Individuals = sum(Individuals)) %>% 
         ungroup()
       else . } %>%
-    arrange(StationID, `Collection Date`) %>%
+    arrange(StationID, `Collection Date`, RepNum) %>%
     mutate(allTheThings = #paste0(rowNumber, "_",
              paste(StationID, as.Date(`Collection Date`), paste('RepNum:', RepNum), BenSampID, sep= '\n')) %>%#) %>%
     pivot_wider(names_from = allTheThings, values_from = Individuals) %>%
