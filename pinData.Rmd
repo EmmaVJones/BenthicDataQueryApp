@@ -3,6 +3,20 @@ title: "Benthic Data Pin"
 output: html_document
 resource_files:
 - config.yml
+- data/GIS/VA_SUBWATERSHED_6TH_ORDER_STG.cpg
+- data/GIS/VA_SUBWATERSHED_6TH_ORDER_STG.dbf
+- data/GIS/VA_SUBWATERSHED_6TH_ORDER_STG.prj
+- data/GIS/VA_SUBWATERSHED_6TH_ORDER_STG.sbn
+- data/GIS/VA_SUBWATERSHED_6TH_ORDER_STG.sbx
+- data/GIS/VA_SUBWATERSHED_6TH_ORDER_STG.shp.xml
+- data/GIS/VA_SUBWATERSHED_6TH_ORDER_STG.shx
+- data/GIS/VA_level3ecoregion_WGS84.cpg
+- data/GIS/VA_level3ecoregion_WGS84.dbf
+- data/GIS/VA_level3ecoregion_WGS84.prj
+- data/GIS/VA_level3ecoregion_WGS84.sbx
+- data/GIS/VA_level3ecoregion_WGS84.shp.xml
+- data/GIS/VA_level3ecoregion_WGS84.shx
+- data/GIS/VA_level3ecoregion_WGS84.sbn
 ---
 
 ```{r setup, include=FALSE}
@@ -29,15 +43,14 @@ source('helperFunctions/VCPMI_metrics_GENUS.R')
 ```
 
 ```{r connect to ODS_test}
-## Connect to ODS_test
-
-# establish db connection locally
-#pool <- dbPool(
-#  drv = odbc::odbc(),
-#  Driver = "SQL Server",  # note the space between SQL and Server ( how MS named driver)
-#  Server= "WSQ04151,50000",
-#  dbname = "ODS_test"
-#)
+## For testing: connect to ODS production
+# pool <- dbPool(
+#   drv = odbc::odbc(),
+#   Driver = "ODBC Driver 11 for SQL Server",#Driver = "SQL Server Native Client 11.0",
+#   Server= "DEQ-SQLODS-PROD,50000",
+#   dbname = "ODS",
+#   trusted_connection = "yes"
+# )
 
 # establish db connection on server
 pool <- dbPool(
@@ -56,7 +69,7 @@ pool <- dbPool(
 
 Pull Genus Master Taxa list.
 
-```{r}
+```{r masterTaxaGenus}
 masterTaxaGenus <- pool %>% tbl("Edas_Benthic_Master_Taxa_View") %>%
   as_tibble() %>%
   # make columns match expected format
@@ -131,6 +144,8 @@ benSamps <- pool %>% tbl("Edas_Benthic_Sample_View") %>%
 
 ```
 
+After we bring in WQM_Stations (CEDS) and WQM_Stations_Full (REST) we will improve this BenSamps dataset with ecoregion and assessment region information in a separate pin.
+
 
 Pull HabSamps
 
@@ -157,7 +172,7 @@ habSamps <- pool %>% tbl("Edas_Habitat_Sample_View") %>%
 
 Pull HabValues
 
-```{r}
+```{r habValues}
 habValues <- pool %>% tbl("Edas_Habitat_Values_View") %>%
         as_tibble() %>%
         rename("HabSampID" = "WHS_SAMP_ID",
@@ -170,14 +185,14 @@ habValues <- pool %>% tbl("Edas_Habitat_Values_View") %>%
 
 Pull WQM_Stations_View.
 
-```{r}
+```{r WQM_Stations_View}
 WQM_Stations_View <- pool %>% tbl("Wqm_Stations_View") %>%  
   as_tibble()
 ```
 
 Pull WQM_Sta_GIS_View.
 
-```{r}
+```{r WQM_Sta_GIS_View}
 WQM_Sta_GIS_View <- pool %>% tbl("Wqm_Sta_GIS_View") %>%  
   as_tibble()
 ```
@@ -204,8 +219,65 @@ WQM_Station_Full <- suppressWarnings(
       geojson_sf("http://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=OBJECTID%3E0&outFields=*&f=geojson")) %>%
       mutate(WQM_YRS_YEAR = as.Date(as.POSIXct(as.numeric(gsub(" ", ".",gsub("(.{10})", "\\1 ", sprintf("%.0f", as.numeric(WQM_YRS_YEAR))))), origin="1970-01-01")))
 
-WQM_Station_Full <- bind_cols(WQM_Station_Full, st_coordinates(WQM_Station_Full) %>% as.tibble()) %>%
+WQM_Station_Full <- bind_cols(WQM_Station_Full, st_coordinates(WQM_Station_Full) %>% as_tibble()) %>%
   mutate(Latitude = Y, Longitude = X) %>% dplyr::select(-c(X, Y))
+
+```
+
+
+Create a BenSampsStations dataset with ecoregion and assessment region information
+```{r ecoregion assessment}
+#Bring in extra large ecoregion and assessment region files. By extra large we mean that they are continuous outside the state boundary such that stations that fall outside the state are not removed when spatially intersected
+ecoregionLarge <- st_read('data/GIS/VA_level3ecoregion_WGS84.shp')
+#assessmentRegionLarge <- st_read('data/GIS/AssessmentRegions_buffer.shp')
+```
+
+How I made the unrestrictedAssessmentRegionVAHU6Subbasin layer:
+
+```{r unrestrictedAssessmentRegionVAHU6Subbasin}
+vahu6 <- st_read('data/GIS/VA_SUBWATERSHED_6TH_ORDER_STG.shp') # this version of vahu6 layer goes outside state boundary
+subbasinConversion <- read_csv('data/subbasinToVAHU6conversion.csv')
+unrestrictedAssessmentRegionVAHU6Subbasin <- left_join(vahu6, subbasinConversion, by = c('VAHU6', 'VAHU5'))
+```
+
+
+
+
+```{r benSampsStations}
+benSampsStations1 <- benSamps %>%
+  group_by(StationID) %>%
+  mutate(`Total Station Visits (Not Sample Reps)` = n()) %>%
+  ungroup() %>%
+  distinct(StationID, .keep_all = T) %>%
+  left_join(dplyr::select(WQM_Sta_GIS_View, Station_Id, Latitude, Longitude), by = c('StationID' = 'Station_Id')) %>%
+  dplyr::select(StationID, `Total Station Visits (Not Sample Reps)`, Latitude, Longitude) %>%
+  #pull this where readily available to save time
+  left_join(dplyr::select(WQM_Station_Full, WQM_STA_ID, US_L3CODE = EPA_ECO_US_L3CODE, US_L3NAME = EPA_ECO_US_L3NAME),
+            by =c('StationID'= 'WQM_STA_ID')) %>%
+  filter(!is.na(Latitude) | !is.na(Longitude)) %>%
+  st_as_sf(coords = c("Longitude", "Latitude"),  # make spatial layer using these columns
+           remove = T, # don't remove these lat/lon cols from df
+           crs = 4326)
+
+# Need to join sites missing ecoregion information manually
+benSampsStationsEco <- filter(benSampsStations1, is.na(US_L3CODE)) %>%
+  st_intersection(dplyr::select(ecoregionLarge, US_L3CODE, US_L3NAME)) %>%
+  mutate(US_L3CODE1 = as.character(`US_L3CODE.1`), US_L3NAME1 = as.character(`US_L3NAME.1`)) %>%
+  dplyr::select(StationID, `Total Station Visits (Not Sample Reps)` = "Total.Station.Visits..Not.Sample.Reps.",
+                US_L3CODE1, US_L3NAME1) %>%
+  st_drop_geometry() # drop geometry for the join
+
+# combine with benSampsStations with a join because for some reason rbind() is dropping the ecoregion information
+benSampsStationsTogether <- left_join(benSampsStations1, benSampsStationsEco, 
+                                      by = c('StationID', 'Total Station Visits (Not Sample Reps)')) %>%
+  mutate(US_L3CODE = ifelse(is.na(US_L3CODE), US_L3CODE1, US_L3CODE),
+         US_L3NAME = ifelse(is.na(US_L3NAME), US_L3NAME1, US_L3NAME)) %>%
+  dplyr::select( StationID, `Total Station Visits (Not Sample Reps)`, US_L3CODE, US_L3NAME)
+
+benSampsStations <- st_intersection(benSampsStationsTogether, unrestrictedAssessmentRegionVAHU6Subbasin) %>% #assessmentRegionLarge) %>%
+  rename('Total Station Visits (Not Sample Reps)' = "Total.Station.Visits..Not.Sample.Reps.") %>%
+  distinct(StationID, .keep_all = T) %>% 
+  dplyr::select(-c(OBJECTID:HUMOD, OBJECTID_1))
 
 ```
 
@@ -347,7 +419,7 @@ VCPMI65results$Season <-  factor(VCPMI65results$Season,levels=c("Spring","Outsid
 
 Pull Enforcement Data
 
-```{r, eval = FALSE}
+```{r enforcement, eval = FALSE}
 # Facilities Data (for joining)
 enfFacilities <- pool %>% tbl("Enf_Facilities_View") %>%
   as_tibble()
@@ -413,7 +485,7 @@ pin(benSamps, description = "Edas_Benthic_Sample_View from ODS", board = "rsconn
 pin(habSamps, description = "Edas_Habitat_Sample_View from ODS", board = "rsconnect")
 pin(habValues, description = "Edas_Habitat_Values_View from ODS", board = "rsconnect")
 pin(habObs, description = "Edas_Habitat_Observations_View from ODS", board = "rsconnect")
-
+pin(benSampsStations, description = 'Unique Stations from BenSamps with sampling metrics, US Level 3 Ecoregion, and Assessment Region information', board = "rsconnect")
 
 pin(VSCIresults, description = "VSCI results calculated from ODS_test", board = "rsconnect")
 pin(VCPMI63results, description = "VCPMI+63 results calculated from ODS", board = "rsconnect")

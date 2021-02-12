@@ -636,7 +636,7 @@ shinyServer(function(input, output, session) {
                  hoverinfo="text", text=~paste(sep="<br>",
                                                paste("StationID: ", StationID),
                                                paste("Collection Date: ", as.Date(`Collection Date`)),
-                                               paste('Replicate: ', RepNum),
+                                               #paste('Replicate: ', RepNum),
                                                paste("Field Team: ",`Field Team`),
                                                paste("HabSampID: ", HabSampID),
                                                paste("Total Habitat Score: ", `Total Habitat Score`))) %>%
