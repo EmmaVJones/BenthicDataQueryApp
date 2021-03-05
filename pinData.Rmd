@@ -240,8 +240,48 @@ subbasinConversion <- read_csv('data/subbasinToVAHU6conversion.csv')
 unrestrictedAssessmentRegionVAHU6Subbasin <- left_join(vahu6, subbasinConversion, by = c('VAHU6', 'VAHU5'))
 ```
 
+Make a WQM_Stations_Spatial dataset that has spatially derived ecoregion, subbasin, and assessment info.
+
+```{r WQM_Stations_Spatial}
+# bring in what already has data
+WQM_Stations_Spatial_pin <- pin_get('ejones/WQM-Stations-Spatial')
+
+# identify any new sites that have been added to CEDS since the last analysis
+WQM_Stations_Spatial1 <- filter(WQM_Sta_GIS_View, ! Station_Id %in% WQM_Stations_Spatial_pin$StationID) %>%
+  distinct(Station_Id, .keep_all = T) %>% # first makes sure only 1 record per station
+  filter(!is.na(Latitude) | !is.na(Longitude)) %>% # make sure all stations have coordinates
+  dplyr::select(StationID = Station_Id, Latitude, Longitude) %>% 
+  left_join(dplyr::select(WQM_Stations_View, Sta_Id, Sta_Desc), by = c('StationID' = 'Sta_Id')) %>%   # add Station description info
+  distinct(StationID, .keep_all = T) %>% # again makes sure only 1 record per station
+  st_as_sf(coords = c("Longitude", "Latitude"),  # make spatial layer using these columns
+           remove = F, # don't remove these lat/lon cols from df
+           crs = 4326) 
+
+# Add Ecoregion Info
+WQM_Stations_SpatialEco <- #filter(WQM_Stations_Spatial1, is.na(US_L3CODE)) %>%
+  st_intersection(WQM_Stations_Spatial1, dplyr::select(ecoregionLarge, US_L3CODE, US_L3NAME)) %>%st_drop_geometry()
+#  mutate(US_L3CODE = as.character(`US_L3CODE.1`), US_L3NAME = as.character(`US_L3NAME.1`)) %>%
+#  dplyr::select(-c(US_L3CODE.1, US_L3NAME.1)) %>% st_drop_geometry()
+
+# Add Assessment and Basin Info
+WQM_Stations_SpatialAssess <- #filter(WQM_Stations_Spatial1, is.na(ASSESS_REG)) %>%
+  st_intersection(WQM_Stations_Spatial1, unrestrictedAssessmentRegionVAHU6Subbasin) %>% #assessmentRegionLarge) %>%
+  distinct(StationID, .keep_all = T) %>% st_drop_geometry() 
+#  mutate(ASSESS_REG = ASSESS_REG.1) %>% 
+#  dplyr::select(-c(OBJECTID:HUMOD, OBJECTID_1, ASSESS_REG.1))%>% st_drop_geometry()
+
+WQM_Stations_Spatial2 <- full_join(dplyr::select(WQM_Stations_SpatialEco, StationID:US_L3NAME),
+                                        dplyr::select(WQM_Stations_SpatialAssess, StationID, ASSESS_REG:Basin_Code ),
+                                        by='StationID')
 
 
+WQM_Stations_Spatial <- bind_rows(WQM_Stations_Spatial_pin, WQM_Stations_Spatial2)
+
+```
+
+
+
+Make a benSampsStations dataset that has spatially derived ecoregion, subbasin, and assessment info.
 
 ```{r benSampsStations}
 benSampsStations1 <- benSamps %>%
@@ -250,7 +290,9 @@ benSampsStations1 <- benSamps %>%
   ungroup() %>%
   distinct(StationID, .keep_all = T) %>%
   left_join(dplyr::select(WQM_Sta_GIS_View, Station_Id, Latitude, Longitude), by = c('StationID' = 'Station_Id')) %>%
-  dplyr::select(StationID, `Total Station Visits (Not Sample Reps)`, Latitude, Longitude) %>%
+  # add Station description info
+  left_join(dplyr::select(WQM_Stations_View, Sta_Id, Sta_Desc), by = c('StationID' = 'Sta_Id')) %>%
+  dplyr::select(StationID, Sta_Desc, `Total Station Visits (Not Sample Reps)`, Latitude, Longitude) %>%
   #pull this where readily available to save time
   left_join(dplyr::select(WQM_Station_Full, WQM_STA_ID, US_L3CODE = EPA_ECO_US_L3CODE, US_L3NAME = EPA_ECO_US_L3NAME),
             by =c('StationID'= 'WQM_STA_ID')) %>%
@@ -272,7 +314,7 @@ benSampsStationsTogether <- left_join(benSampsStations1, benSampsStationsEco,
                                       by = c('StationID', 'Total Station Visits (Not Sample Reps)')) %>%
   mutate(US_L3CODE = ifelse(is.na(US_L3CODE), US_L3CODE1, US_L3CODE),
          US_L3NAME = ifelse(is.na(US_L3NAME), US_L3NAME1, US_L3NAME)) %>%
-  dplyr::select( StationID, `Total Station Visits (Not Sample Reps)`, US_L3CODE, US_L3NAME)
+  dplyr::select( StationID, Sta_Desc, `Total Station Visits (Not Sample Reps)`, US_L3CODE, US_L3NAME)
 
 benSampsStations <- st_intersection(benSampsStationsTogether, unrestrictedAssessmentRegionVAHU6Subbasin) %>% #assessmentRegionLarge) %>%
   rename('Total Station Visits (Not Sample Reps)' = "Total.Station.Visits..Not.Sample.Reps.") %>%
@@ -371,11 +413,11 @@ SCI <- function(stationBenthicsDateRange, SCIchoice, benSamps, masterTaxaGenus, 
     rename("SCI Score" ="Fam SCI")}
   if(SCIchoice == 'VCPMI + 63'){SCI <- VCPMI63calculation(bugTraits,exclusionMath,vmast) %>%
     mutate(SCI = 'VCPMI + 63',
-           `SCI Threshold` = 42) %>% 
+           `SCI Threshold` = 40) %>% 
     rename("SCI Score" ="CPMI63+CHOWAN")}
   if(SCIchoice == 'VCPMI - 65'){SCI <- VCPMI65calculation(bugTraits,exclusionMath,vmast) %>%
     mutate(SCI = 'VCPMI - 65',
-           `SCI Threshold` = 42) %>% 
+           `SCI Threshold` = 40) %>% 
     rename("SCI Score" ="CPMI65-CHOWAN")}
   
   SCI <- left_join(SCI, benSamps, by = 'BenSampID')
@@ -495,6 +537,9 @@ pin(VCPMI65results, description = "VCPMI-65 results calculated from ODS", board 
 pin(WQM_Stations_View, description = "Wqm_Stations_View from ODS", board = "rsconnect")
 pin(WQM_Sta_GIS_View, description = "Wqm_Sta_GIS_View from ODS", board = "rsconnect")
 pin(WQM_Station_Full, description = "first 25k records from WQM Stations (full) from GIS REST service", board = "rsconnect")
+
+
+pin(WQM_Stations_Spatial, Description = 'Weekly rebuild of all stations in WQM_Sta_GIS_View with accurate spatial information', board = 'rsconnect')
 
 
 #pin(enfFacilities, description = "Enf_Facilities_View from ODS", board = "rsconnect")

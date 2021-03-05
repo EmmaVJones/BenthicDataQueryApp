@@ -493,6 +493,43 @@ SCI_filter_plot_SCIchoice %>%
 
 
 
+## BCG Attribute table
+multiBCGtable <- benthics_Filter %>%
+  dplyr::select(StationID:Individuals) %>%
+  mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
+  arrange(StationID, `Collection Date`, RepNum) %>%
+  left_join(dplyr::select(BCGattVal, FinalID, `Taxonomic Notes`: `BCGatt Comment`), by = 'FinalID')
+
+datatable(multiBCGtable,  rownames = F, escape= F,  extensions = 'Buttons',
+          options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
+                         pageLength=nrow(multiBCGtable), buttons=list('copy','colvis'))) %>% 
+  formatStyle(names(multiBCGtable)[c(8:21, 23:29)], backgroundColor = styleInterval(bcgAttributeColors $brks, bcgAttributeColors $clrs))
+
+
+
+
+
+
+
+#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

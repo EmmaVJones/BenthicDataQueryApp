@@ -279,10 +279,6 @@ crosstabTemplate %>%
 
 
 
-
-
-
-
 benthics_crosstab_Billy(stationBenthicsDateRange, #benthics_Filter,
                         masterTaxaGenus, genusOrFamily = "Genus")
 
@@ -550,9 +546,27 @@ habValues_totHab %>%
 avgTotalHab <- totalHabScoreAverages(habValues_totHab)
 
 
+### BCG attribute Table
+
+BCGtable <- stationBenthicsDateRange %>% 
+  dplyr::select(`Collection Date`:Individuals) %>% 
+  mutate(`Collection Date` = as.Date(`Collection Date`)) %>% 
+  left_join(dplyr::select(BCGattVal, FinalID, `Taxonomic Notes`: `BCGatt Comment`), by = 'FinalID')
 
 
+# Each parameter risk table and colors
+bcgAttributeColors <- list(
+  brks = c(1,2,3,4,5,6),
+  clrs = c("#21a654","#55e607","#f7f720","#f2c602", "#f70000", "#c70610", 'gray')
+)
 
+names(BCGtable)[c(8:21, 23:29)]
+
+datatable(BCGtable,  rownames = F, escape= F,  extensions = 'Buttons',
+          options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
+                         pageLength=nrow(BCGtable), buttons=list('copy','colvis'))) %>% 
+  formatStyle(names(BCGtable)[c(8:21, 23:29)], backgroundColor = styleInterval(bcgAttributeColors $brks, bcgAttributeColors $clrs))
+  
 
 
 

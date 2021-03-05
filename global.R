@@ -14,6 +14,7 @@ library(geojsonsf)
 library(pins)
 library(sqldf)
 library(config)
+library(readxl)
 
 
 source('helperFunctions/VSCI_metrics_GENUS.R')
@@ -90,6 +91,20 @@ habSamps <- pin_get("ejones/habSamps", board = "rsconnect")
 habValues <- pin_get("ejones/habValues", board = "rsconnect")
 habObs <- pin_get("ejones/habObs", board = "rsconnect")
 masterTaxaGenus <- pin_get("ejones/masterTaxaGenus", board = "rsconnect")
+
+## BCG Tolerance Values
+BCGattVal <- read_excel('data/MASTER_ATTRIBUTES_BUGS_06062019.xlsx', sheet = 'Sheet1') %>% 
+  dplyr::select(Phylum:`BCGatt Comment`) %>% 
+  dplyr::select(-`DELETE ROW`) %>% 
+  rename('Central Apps BCG' = 'CnAps BCG Attribute...21',
+         'Montgomery County BCG' ='MontCtyBCG...22',
+         'PA BCG' = 'PABCG Attribute...23',
+         'Virginia General BCG Attribute First Choice' = 'Virginia General BCG Attribute   First Choice',
+         'Virginia General BCG Attribute Second Choice'= 'Virginia   GeneralBCG Attribute Second Choice')
+bcgAttributeColors <- list(
+  brks = c(1,2,3,4,5,6),
+  clrs = c("#21a654","#55e607","#f7f720","#f2c602", "#f70000", "#c70610", 'gray')
+)
 
 benSampsStations <- benSamps %>%
   group_by(StationID) %>%

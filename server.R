@@ -533,8 +533,7 @@ shinyServer(function(input, output, session) {
     
     # Benthic Individuals BenSamp Crosstab
     
-    output$benthicIndividualsBensampCrosstab <- DT::renderDataTable({
-      req(stationBenthicsDateRange(), input$genusOrFamily)
+    output$benthicIndividualsBensampCrosstab <- DT::renderDataTable({ req(stationBenthicsDateRange(), input$genusOrFamily)
       z <- benthics_crosstab_Billy(stationBenthicsDateRange(), masterTaxaGenus, genusOrFamily = input$genusOrFamily)
       #print(z)
       
@@ -545,6 +544,19 @@ shinyServer(function(input, output, session) {
                                buttons=list('copy','colvis')))  })
     
     
+    
+    ## BCG Attributes Table
+    output$BCGattributes <-  DT::renderDataTable({ req(stationBenthicsDateRange())
+      BCGtable <- stationBenthicsDateRange() %>% 
+        dplyr::select(`Collection Date`:Individuals) %>% 
+        mutate(`Collection Date` = as.Date(`Collection Date`)) %>% 
+        left_join(dplyr::select(BCGattVal, FinalID, `Taxonomic Notes`: `BCGatt Comment`), by = 'FinalID')
+      datatable(BCGtable,  rownames = F, escape= F,  extensions = 'Buttons',
+                options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
+                               pageLength=nrow(BCGtable), buttons=list('copy','colvis'))) %>% 
+        formatStyle(names(BCGtable)[c(8:21, 23:29)], backgroundColor = styleInterval(bcgAttributeColors $brks, bcgAttributeColors$clrs)) })
+      
+      
     
     
     
@@ -1270,6 +1282,23 @@ shinyServer(function(input, output, session) {
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(z),
                                buttons=list('copy','colvis')))  })
+    
+    
+    ## BCG Attributes Multistation
+    output$multiBCGattributes <-  DT::renderDataTable({ req(reactive_objects$benthics_Filter)
+      multiBCGtable <- reactive_objects$benthics_Filter%>%
+        dplyr::select(StationID:Individuals) %>%
+        mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
+        arrange(StationID, `Collection Date`, RepNum) %>%
+        left_join(dplyr::select(BCGattVal, FinalID, `Taxonomic Notes`: `BCGatt Comment`), by = 'FinalID')
+      
+      datatable(multiBCGtable,  rownames = F, escape= F,  extensions = 'Buttons',
+                options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
+                               pageLength=nrow(multiBCGtable), buttons=list('copy','colvis'))) %>% 
+        formatStyle(names(multiBCGtable)[c(8:21, 23:29)], backgroundColor = styleInterval(bcgAttributeColors $brks, bcgAttributeColors$clrs)) })
+    
+  
+    
     
     
     ## Habitat Sampling Metrics Multistation Tab
