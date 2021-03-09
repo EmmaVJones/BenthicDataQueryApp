@@ -1,0 +1,65 @@
+---
+title: "Benthic Query Tool How To"
+output:
+  pdf_document: default
+  html_document:
+    theme: yeti
+---
+
+# Benthic Query Tool How To
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This page is designed to assist users with benthic and habitat data acquisition and reporting. The application is divided into two sections to meet analytical needs. The `Single Station Query (Live CEDS Connection)` tab allows single station queries directly from the production environment. The `Multiple Station Query (Archived Data Refreshed Weekly)` tab allows for more complicated spatial and temporal analyses of benthic and habitat data.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;All tables feature interactive column sorting, column visibility, and data download features. Tables can be sorted by specific column using the gray arrows next to the column of interest. The `Column Visibility` button allows users to turn columns on or off to aid data visualization. The `Copy` button copies table data to the user's clipboard for use in other applications. Some tables feature `Search` boxes where users may enter character strings to interactively filter table contents. 
+
+### Single Station Query (Live CEDS Connection)
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Queries from this tab are restricted to single stations, allowing users access to the most recent data available. Nightly database rebuilds ensure data entered the previous day are available the follow morning.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Users begin the query process by typing a DEQ Station ID into the text box on the `Station Data` tab. After clicking the `Pull Station` button, the application compiles available station data from the production CEDS environment and GIS REST services. If an invalid DEQ Station ID is entered, a notification in the bottom right corner will appear alerting users that the entered Station ID does not exist. Upon retrieving data, the application plots the station on an interactive map, identifies key station information in the `Station Information` table, and compiles sampling history in the `Sampling Summary` table. The interactive map has a Level III Ecoregion and DEQ Assessment Region layers hidden that can be plotted by hovering the mouse over the layers button in the top left corner of the map. Links to the chosen station in CEDS and in the GIS Staff app are available in the `Station Information` table.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;After a station is retrieved, the user may use the `Benthic Data` and `Habitat Data` tabs. The `Benthic Data` tab allows users to analyze benthic results on the fly using their SCI method of choice, filter results by specific collection date ranges, view unrarified samples, and filter results by replicate number. The `Sampling Metrics` tab averages SCI scores by specific windows (reactive to the selected benthic data range), details collector and taxonomist information, and highlights sample information. The `Detailed SCI Results` tab allows users to visualize SCI scores in an interactive plot and details SCI metrics by BenSampID. The interactive SCI bar plot is color coded by season and allows users to turn layers on and off in the legend on the right panel. Additional features such as zooming, panning, and plot downloads are available in the top right corner of the plot by hovering the mouse on the plot. The `Raw Benthic Data` tab features subtabs that organize raw benthic data by BenSampID in wide or long formats called `Crosstab View` and `Long View`, respectively.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The `Benthic Data Visualization Tools Tab`, nested beneath `Benthic Data` tab provides benthic analysis tools based on user requests. Tools may be added to this area by contacting Emma Jones (emma.jones@deq.virginia.gov) with specific examples and use cases. At present, the tools available include:
+
+* Benthic Individuals BenSamp Crosstab- This tool summarizes Genus or Family level individuals by StationID, sample date, replicate number, and BenSampID. Tolerance values and individuals counted are updated based on the Genus/Family radio button selection directly above the table. Tool requested by Billy Van Wart.
+* BCG Attribute Information- This tool joins the taxa collected at the selected station and collection window with various BCG attribute levels from different regional BCG projects. Tool requested by Kelly Hazlegrove.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The `Habitat Data` tab populates the date range filter to match the window chosen in the `Benthics Data` tab, but users can click the `Filter Custom Date Range` button to choose a different window. The `Sampling Metrics` tab averages Total Habitat scores by specific windows (reactive to the selected habitat data range), details field team and habitat observation metric information, and highlights sample information. The `Detailed Habitat Results` tab allows users to visualize Total Habitat scores in an interactive plot and details Total Habitat scores and habitat metrics by HabSampID. The interactive Total Habitat bar plot is color coded by season and allows users to turn layers on and off in the legend on the right panel. Additional features such as zooming, panning, and plot downloads are available in the top right corner of the plot by hovering the mouse on the plot. The `Raw Habitat Data` tab features tabs that organize raw habitat values and observations by HabSampID in wide or long formats called `Crosstab View` and `Long View`, respectively.
+
+
+
+### Multiple Station Query (Archived Data Refreshed Weekly)
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Queries from this tab are flexible, pulling and analyzing multiple stations by various spatial and temporal filters. The data available to this portion of the application is refreshed weekly and does not access a live version of the production CEDS environment. Users begin by choosing how they wish to query data, either by spatial filters, wildcard selection, or manually specifying stations.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;With the `Spatial Filters` radio button selected, users may enter query terms into three cross validated filter boxes (e.g. if a Basin is entered, then only VAHU6s inside that basin can be chosen or if an Assessment Region is selected, only Basins and VAHU6s within that Assessment Region can be selected). More than one selection can be entered into any of these boxes. Additionally below the linebreak, two additional filters may be applied on the results at the time of querying. These filters first take all results from the stations that apply to the interactive cross validated selection and then apply a spatial intersection on the chosen Level 3 Ecoregion(s) and filters stations to contain sites sampled within the date range. Any filters left blank do not apply to the selection. After all the desired filters are chosen, press the `Pull Stations` button to run the query. Wildcard selection does not apply to the results from the `Spatial Filters` query method.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;With the `Wildcard Query` radio button selected, a wildcard query can be entered in the text box to find StationID's like the entered text. **Remember to use the % character for any wildcard requests**. If an invalid query is entered, a notification in the bottom right corner will appear alerting users that the entered text does not match any DEQ StationID's. Click the `Pull Stations` button to query based on the wildcard text. Spatial filters do not apply to the results of the `Wildcard Selection` query method.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;With the `Manually Specify Stations` radio button selected, specific stations can be entered in the text box to query those StationIDs. The application will begin to filter available stations based on user input text into the field. Multiple stations can be entered into the single text field. Click the `Pull Stations` button to query based on the stations identified in the text field. Spatial filters do not apply to the results of the `Manually Specify Stations` query method.
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Upon retrieving data, the application plots the stations on an interactive map, identifies key station information in the `Station Information` table, and compiles sampling history in the `Sampling Summary` table. The interactive map has a Level III Ecoregion, DEQ Assessment Region, and VAHU6 layers hidden that can be plotted by hovering the mouse over the layers button in the top left corner of the map. Links to the chosen station in CEDS and in the GIS Staff app are available in the `Station Information` table. 
+
+#### Multistation Selection Map Draw Feature
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;To further restrict stations, use the map drawing polygon or rectangle buttons in the left side of the interactive map to draw features around the stations of interest. The polygon draw tool allows users to draw specific shapes to select just the stations desired. To finish a shape, double click on the first vertex. To use the rectangle draw tool, the user first selects the rectangle tool, then clicks on the map holding the mouse until the shape contains the stations desired. Releasing the mouse finishes the rectangle. Selected stations turn yellow and the selections are reflected in the `Station Information` and `Sampling Summary` tables. To remove selections, click the trash can button on the left side of the interactive map. The user can either clear all to remove all selections at once, or the user can click individual rectangles and polygons to remove. 
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;After the stations are retrieved, the user may use the `Benthic Data` and `Habitat Data` tabs. The `Benthic Data` tab allows users to analyze benthic results on the fly by filtering results on specific collection date ranges, view unrarified samples, and filter results by replicate number. SCI methods are assigned based on sample location. The `Sampling Metrics` tab averages SCI scores across all stations by method, benthic date range window, and season in the `SCI Averages by Selection` table. Station SCI results are averaged by benthic date range window and season in the `SCI Averages by Station` table. Collector and taxonomist information are summarized across all selected stations. The `Detailed SCI Results` tab details SCI scores and metrics by StationID and BenSampID. The `Raw Benthic Data` tab features tabs that organize raw benthic data by BenSampID in wide or long formats called `Crosstab View` and `Long View`, respectively.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The `Benthic Data Visualization Tools Tab`, nested beneath `Benthic Data` tab provides benthic analysis tools based on user requests. Tools may be added to this area by contacting Emma Jones (emma.jones@deq.virginia.gov) with specific examples and use cases. At present, the tools available include:
+
+* SCI Seasonal Crosstab- This tool allows users to visualize Station metrics by replicate number, collection method and season, and SCI method. The metric chosen in the drop down box above the table controls which metric is spread across the sample season and year columns. Tool requested by Billy Van Wart.
+* Benthic Individuals BenSamp Crosstab- This tool summarizes Genus or Family level individuals by StationID, sample date, replicate number, and BenSampID. Tolerance values and individuals counted are updated based on the Genus/Family radio button selection directly above the table. Tool requested by Billy Van Wart.1
+* BCG Attribute Information- This tool joins the taxa collected at the selected station and collection window with various BCG attribute levels from different regional BCG projects. Tool requested by Kelly Hazlegrove.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The `Habitat Data` tab populates the date range filter to match the window chosen in the `Benthics Data` tab. The `Sampling Metrics` tab averages Total Habitat scores by the date range window specified on the `Benthic Data` tab, season, and by individual StationIDs across the selected date range and seasons.  Field team and habitat observation metrics information is summarized across all selected sites and `Habitat Sample Information` table details collection information for each HabSampID. The `Detailed Habitat Results` tab lists Total Habitat scores and habitat metrics by HabSampID. The `Raw Habitat Data` tab features tabs that organize raw habitat values and observations by HabSampID in wide or long formats called `Crosstab View` and `Long View`, respectively.
+
+<br><br>
+
+### Contact Information
+
+Please contact Jason Hill (jason.hill@deq.virginia.gov) and Emma Jones (emma.jones@deq.virginia.gov) for questions regarding the application.
+
+<br><br><br>

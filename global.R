@@ -52,7 +52,7 @@ onStop(function() {
   poolClose(pool)
 })
 
-## For testing: connect to ODS production
+# ## For testing: connect to ODS production
 # pool <- dbPool(
 #   drv = odbc::odbc(),
 #   Driver = "ODBC Driver 11 for SQL Server",#Driver = "SQL Server Native Client 11.0",

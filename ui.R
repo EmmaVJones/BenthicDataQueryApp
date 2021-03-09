@@ -2,7 +2,8 @@ shinyUI(fluidPage(theme= "yeti.css",
                   navbarPage("CEDS Benthic Data Query Tool",
                              
                              tabPanel('How To',
-                                      htmlOutput("BenthicQueryToolHowTo") ),
+                                      includeMarkdown("BenthicQueryToolHowToNew.md")),
+                                      #includeHTML("BenthicQueryToolHowTo.html")),#htmlOutput("BenthicQueryToolHowTo") ), # this was a hot mess. when trying to update the BenthicQueryHowTo rmd and rendering to html, the app would not take any user inputs. so weird and wasted hours on this problem. ultimately had to go with rendering the .md in the app to have any semblance of a solution
                              
                              tabPanel("Single Station Query (Live CEDS Connection)",
                                       tabsetPanel(
@@ -78,6 +79,11 @@ shinyUI(fluidPage(theme= "yeti.css",
                                                               radioButtons('genusOrFamily', "Analyze by Genus or Family", choices = c('Genus', 'Family')),
                                                               DT::dataTableOutput('benthicIndividualsBensampCrosstab'), br(),
                                                               h4('BCG Attribute Information'),
+                                                              helpText('The table below joins the taxa collected at the selected station and collection window
+                                                                       with various BCG attribute levels from different regional BCG projects. For more information 
+                                                                       on the BCG process', 
+                                                                       span(strong(a('click here.', href='https://www.deq.virginia.gov/home/showpublisheddocument?id=4303',
+                                                                              target='_blank')))), 
                                                               DT::dataTableOutput('BCGattributes'),
                                                               br(), br(), br())) # a little breathing room
                                                      )),
@@ -236,6 +242,11 @@ shinyUI(fluidPage(theme= "yeti.css",
                                                               radioButtons('genusOrFamily_multistation', "Analyze by Genus or Family", choices = c('Genus', 'Family')),
                                                               DT::dataTableOutput('benthicIndividualsBensampCrosstab_multistation'), br(),
                                                               h4('BCG Attribute Information'),
+                                                              helpText('The table below joins the taxa collected at the selected station and collection window
+                                                                       with various BCG attribute levels from different regional BCG projects. For more information 
+                                                                       on the BCG process', 
+                                                                       span(strong(a('click here.', href='https://www.deq.virginia.gov/home/showpublisheddocument?id=4303',
+                                                                                     target='_blank')))),
                                                               DT::dataTableOutput('multiBCGattributes'),
                                                               br(), br(), br() # a little breathing room
                                                               )))),

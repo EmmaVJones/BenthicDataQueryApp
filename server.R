@@ -1420,7 +1420,7 @@ shinyServer(function(input, output, session) {
     
     ### -------------------------------------How To----------------------------------------------------------------------------------------------------------------------
     
-    output$BenthicQueryToolHowTo <- renderUI({includeHTML("BenthicQueryToolHowTo.html")})
+    #output$BenthicQueryToolHowTo <- renderUI({includeHTML("BenthicQueryToolHowTo.html")})
     
     
  })
