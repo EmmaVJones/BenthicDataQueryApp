@@ -10,6 +10,8 @@ shinyUI(fluidPage(theme= "yeti.css",
                                         tabPanel("Station Data",
                                                  sidebarPanel(
                                                    helpText("Query will pull directly from CEDS. Data is refreshed nightly."),
+                                                   helpText(strong('Note: Wildcard searches are only available in the Multiple 
+                                                                   Station Query section of this application')),
                                                    textInput('station', 'DEQ Station ID', placeholder = "DEQ Station ID"),
                                                    br(),
                                                    actionButton('begin', 'Pull Station',class='btn-block')),

@@ -1064,8 +1064,7 @@ shinyServer(function(input, output, session) {
     })
     
 
-    observe({
-      req(input$dateRange_benSamps_multistation)
+    observe({req(input$dateRange_benSamps_multistation)
       reactive_objects$benSamps_Filter_UserFilter <- filter(reactive_objects$benSamps_Filter, as.Date(`Collection Date`) >= input$dateRange_benSamps_multistation[1] & as.Date(`Collection Date`) <= input$dateRange_benSamps_multistation[2])
       # WQM_Station_Full missing Ecoregion info in some places so need to spatially join some
       if(nrow(filter(reactive_objects$benSamps_Filter_UserFilter, is.na(EPA_ECO_US_L3CODE))) > 0){
@@ -1124,7 +1123,7 @@ shinyServer(function(input, output, session) {
       
       
       # Raw Multistation Habitat Data
-      reactive_objects$habSamps_Filter <- filter(habSamps, StationID %in% reactive_objects$WQM_Stations_Filter$StationID) %>%
+      reactive_objects$habSamps_Filter <- filter(habSamps, StationID %in% reactive_objects$benSamps_Filter_fin$StationID) %>%
         filter(as.Date(`Collection Date`) >= input$dateRange_benSamps_multistation[1] & as.Date(`Collection Date`) <= input$dateRange_benSamps_multistation[2]) %>%
         # filter by user decisions
         {if(!is.null(input$multistationGradientFilter))
