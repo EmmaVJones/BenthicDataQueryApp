@@ -224,7 +224,6 @@ WQM_Station_Full <- bind_cols(WQM_Station_Full, st_coordinates(WQM_Station_Full)
 
 ```
 
-
 Create a BenSampsStations dataset with ecoregion and assessment region information
 ```{r ecoregion assessment}
 #Bring in extra large ecoregion and assessment region files. By extra large we mean that they are continuous outside the state boundary such that stations that fall outside the state are not removed when spatially intersected
@@ -271,11 +270,19 @@ WQM_Stations_SpatialAssess <- #filter(WQM_Stations_Spatial1, is.na(ASSESS_REG)) 
 #  dplyr::select(-c(OBJECTID:HUMOD, OBJECTID_1, ASSESS_REG.1))%>% st_drop_geometry()
 
 WQM_Stations_Spatial2 <- full_join(dplyr::select(WQM_Stations_SpatialEco, StationID:US_L3NAME),
-                                        dplyr::select(WQM_Stations_SpatialAssess, StationID, ASSESS_REG:Basin_Code ),
+                                        dplyr::select(WQM_Stations_SpatialAssess, StationID, VAHU6, ASSESS_REG:Basin_Code ),
                                         by='StationID')
 
+# Fix any sites that are missing lat/lng after combining eco and assessment info (missing coords from assessment step)
+WQM_Stations_Spatial2fix <- filter(WQM_Stations_Spatial2, is.na(Latitude) | is.na(Longitude)) %>% 
+  left_join(WQM_Stations_Spatial1 %>% st_drop_geometry(), by = 'StationID') %>% 
+  dplyr::select(StationID, Latitude = `Latitude.y`, Longitude = `Longitude.y`, Sta_Desc = `Sta_Desc.y`, 
+                US_L3CODE:Basin_Code)
 
-WQM_Stations_Spatial <- bind_rows(WQM_Stations_Spatial_pin, WQM_Stations_Spatial2)
+WQM_Stations_Spatial3 <- bind_rows(filter(WQM_Stations_Spatial2, !StationID %in% WQM_Stations_Spatial2fix$StationID),
+                                   WQM_Stations_Spatial2fix)
+
+WQM_Stations_Spatial <- bind_rows(WQM_Stations_Spatial_pin, WQM_Stations_Spatial3)
 
 ```
 
