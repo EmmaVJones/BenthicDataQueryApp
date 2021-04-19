@@ -240,6 +240,35 @@ crosstabBenthicsRaw <- stationBenthicsDateRange %>%
   pivot_wider(id_cols = c('StationID','BenSampID','Collection Date', 'RepNum'), names_from = FinalID, values_from = Individuals) %>%
   arrange(`Collection Date`)
 
+filter(stationBenthics, BenSampID %in% stationInfoBenSampsDateRange$BenSampID) %>%
+  left_join(dplyr::select(stationInfoBenSampsDateRange, BenSampID, `Collection Date`)) %>%
+  dplyr::select(`Collection Date`, everything()) %>%
+  arrange(`Collection Date`)
+
+# Raw benthic data worked back up to Family crosstab and long view
+crosstabBenthicsRawFamily <- stationBenthicsDateRange %>%
+  left_join(dplyr::select(masterTaxaGenus, `Final VA Family ID`,`FinalID`), by = 'FinalID') %>% 
+  group_by(StationID, BenSampID, `Collection Date`, RepNum, `Final VA Family ID`) %>% 
+  mutate(Individuals = sum(Individuals, na.rm = T)) %>% 
+  distinct(`Final VA Family ID`, .keep_all = T) %>% 
+  dplyr::select(-FinalID) %>% 
+  ungroup() %>% 
+  group_by(StationID, BenSampID, `Collection Date`, RepNum) %>%
+  arrange( `Final VA Family ID`) %>%
+  pivot_wider(id_cols = c('StationID','BenSampID','Collection Date', 'RepNum'), names_from = `Final VA Family ID`, values_from = Individuals) %>%
+  arrange(`Collection Date`)
+
+benthicsRawFamily <- stationBenthicsDateRange %>%
+  left_join(dplyr::select(masterTaxaGenus, `Final VA Family ID`,`FinalID`), by = 'FinalID') %>% 
+  group_by(StationID, BenSampID, `Collection Date`, RepNum, `Final VA Family ID`) %>% 
+  mutate(Individuals = sum(Individuals, na.rm = T)) %>% 
+  distinct(`Final VA Family ID`, .keep_all = T) %>% 
+  dplyr::select(StationID, BenSampID, `Collection Date`, RepNum, `Final VA Family ID`, Individuals, 
+                Taxonomist, `Entered By`, `Entered Date`) %>% 
+  arrange(`Collection Date`)
+
+
+
 
 glimpse(stationBenthicsFilterOptions)
 

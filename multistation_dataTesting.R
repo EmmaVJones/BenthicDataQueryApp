@@ -249,6 +249,42 @@ avgSCIstations <- averageSCI_multistation(benSamps_Filter_fin, SCI_filter) %>%
 
 
 
+# Raw benthic data worked up to family level
+benthics_Filter_crosstab <- benthics_Filter %>%
+  group_by(StationID, BenSampID, `Collection Date`, RepNum) %>%
+  arrange(FinalID) %>%
+  pivot_wider(id_cols = c('StationID','BenSampID','Collection Date', 'RepNum'), names_from = FinalID, values_from = Individuals) %>%
+  arrange(StationID, `Collection Date`)
+benthics_Filter <- filter(benthics, BenSampID %in% benSamps_Filter_fin$BenSampID) %>%
+  left_join(dplyr::select(benSamps_Filter_fin, BenSampID, `Collection Date`)) %>%
+  dplyr::select(StationID, `Collection Date`, everything()) %>%
+  arrange(StationID, `Collection Date`)
+benthics_Filter_crosstabFamily <- benthics_Filter %>%
+  left_join(dplyr::select(masterTaxaGenus, `Final VA Family ID`,`FinalID`), by = 'FinalID') %>% 
+  group_by(StationID, BenSampID, `Collection Date`, RepNum, `Final VA Family ID`) %>% 
+  mutate(Individuals = sum(Individuals, na.rm = T)) %>% 
+  distinct(`Final VA Family ID`, .keep_all = T) %>% 
+  dplyr::select(-FinalID) %>% 
+  ungroup() %>% 
+  group_by(StationID, BenSampID, `Collection Date`, RepNum) %>%
+  arrange(`Final VA Family ID`) %>%
+  pivot_wider(id_cols = c('StationID','BenSampID','Collection Date', 'RepNum'), names_from = `Final VA Family ID`, values_from = Individuals) %>%
+  arrange(StationID, `Collection Date`)
+benthics_FilterFamily <- filter(benthics, BenSampID %in% benSamps_Filter_fin$BenSampID) %>%
+  left_join(dplyr::select(masterTaxaGenus, `Final VA Family ID`,`FinalID`), by = 'FinalID') %>% 
+  group_by(StationID, BenSampID, RepNum, `Final VA Family ID`) %>% 
+  mutate(Individuals = sum(Individuals, na.rm = T)) %>% 
+  distinct(`Final VA Family ID`, .keep_all = T) %>% 
+  left_join(dplyr::select(benSamps_Filter_fin, BenSampID, `Collection Date`)) %>%
+  dplyr::select(StationID, `Collection Date`, BenSampID, RepNum, `Final VA Family ID`, 
+                Individuals, Taxonomist, `Entered By`, `Entered Date`) %>%
+  arrange(StationID, `Collection Date`)
+
+
+
+
+
+
 ### SCI Cross tab for Billy
 #colOrder <- c('StationID', 'BenSampID', 'BASINS_HU_12_NAME', 'WQM_STA_DESC', 'RepNum', 'SCI',
 #              paste(rep(1970:year(Sys.Date()), times=1, each = 3), c('Spring','Fall','Outside Sample Window')))

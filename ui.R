@@ -63,11 +63,17 @@ shinyUI(fluidPage(theme= "yeti.css",
                                                               br(), br(), br()), # a little breathing room
                                                      tabPanel('Raw Benthic Data',
                                                               tabsetPanel(
-                                                                tabPanel('Crosstab View',
-                                                                         DT::dataTableOutput('rawBenthicCrosstab'),
+                                                                tabPanel('Genus Level Crosstab View',
+                                                                         DT::dataTableOutput('rawBenthicCrosstabGenus'),
                                                                          br(), br(), br()), # a little breathing room
-                                                                tabPanel('Long View',
-                                                                         DT::dataTableOutput('rawBenthic'),
+                                                                tabPanel('Genus Level Long View',
+                                                                         DT::dataTableOutput('rawBenthicGenus'),
+                                                                         br(), br(), br()),
+                                                                tabPanel('Family Level Crosstab View',
+                                                                         DT::dataTableOutput('rawBenthicCrosstabFamily'),
+                                                                         br(), br(), br()), # a little breathing room
+                                                                tabPanel('Family Level Long View',
+                                                                         DT::dataTableOutput('rawBenthicFamily'),
                                                                          br(), br(), br())) # a little breathing room
                                                      ),
                                                      tabPanel('Benthic Visualization Tools',
@@ -225,11 +231,17 @@ shinyUI(fluidPage(theme= "yeti.css",
                                                               DT::dataTableOutput('SCIresultsAdjusted')),
                                                      tabPanel('Raw Benthic Data',
                                                               tabsetPanel(
-                                                                tabPanel('Crosstab View',
-                                                                         DT::dataTableOutput('rawMultistationBenthicCrosstab'),
+                                                                tabPanel('Genus Level Crosstab View',
+                                                                         DT::dataTableOutput('rawMultistationBenthicCrosstabGenus'),
                                                                          br(), br(), br()), # a little breathing room
-                                                                tabPanel('Long View',
-                                                                         DT::dataTableOutput('rawMultistationBenthic'),
+                                                                tabPanel('Genus Level Long View',
+                                                                         DT::dataTableOutput('rawMultistationBenthicGenus'),
+                                                                         br(), br(), br()),
+                                                                tabPanel('Family Level Crosstab View',
+                                                                         DT::dataTableOutput('rawMultistationBenthicCrosstabFamily'),
+                                                                         br(), br(), br()), # a little breathing room
+                                                                tabPanel('Family Level Long View',
+                                                                         DT::dataTableOutput('rawMultistationBenthicFamily'),
                                                                          br(), br(), br())) # a little breathing room
                                                      ),
                                                      tabPanel('Benthic Visualization Tools',

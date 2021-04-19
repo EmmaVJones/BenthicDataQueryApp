@@ -490,7 +490,7 @@ shinyServer(function(input, output, session) {
         pivot_wider(id_cols = c('StationID','BenSampID','Collection Date', 'RepNum'), names_from = FinalID, values_from = Individuals) %>%
         arrange(`Collection Date`) })
     
-    output$rawBenthicCrosstab <- DT::renderDataTable({
+    output$rawBenthicCrosstabGenus <- DT::renderDataTable({
       req(rawBenthicsCrosstab())
       datatable(rawBenthicsCrosstab() %>% 
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
@@ -500,13 +500,51 @@ shinyServer(function(input, output, session) {
                                pageLength=nrow(rawBenthicsCrosstab()), buttons=list('copy','colvis')))  })
     
     
-    output$rawBenthic <- DT::renderDataTable({
-      req(stationBenthicsDateRange())
-      datatable(stationBenthicsDateRange() %>% mutate(`Collection Date` = as.Date(`Collection Date`),
-                                                      `Entered Date` = as.Date(`Entered Date`)), 
+    output$rawBenthicGenus <- DT::renderDataTable({ req(stationBenthicsDateRange())
+      z <- stationBenthicsDateRange() %>% 
+        mutate(`Collection Date` = as.Date(`Collection Date`),
+               `Entered Date` = as.Date(`Entered Date`)) %>% 
+        dplyr::select(StationID, BenSampID, `Collection Date`, RepNum, everything()) 
+      datatable(z, rownames = F, escape= F,  extensions = 'Buttons',
+                options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
+                               pageLength=nrow(z), buttons=list('copy','colvis')))  })
+    
+    
+    output$rawBenthicCrosstabFamily <- DT::renderDataTable({req(stationBenthicsDateRange())
+      z <- stationBenthicsDateRange() %>%
+        left_join(dplyr::select(reactive_objects$masterTaxaGenus, `Final VA Family ID`,`FinalID`), by = 'FinalID') %>% 
+        group_by(StationID, BenSampID, `Collection Date`, RepNum, `Final VA Family ID`) %>% 
+        mutate(Individuals = sum(Individuals, na.rm = T)) %>% 
+        distinct(`Final VA Family ID`, .keep_all = T) %>% 
+        dplyr::select(-FinalID) %>% 
+        ungroup() %>% 
+        group_by(StationID, BenSampID, `Collection Date`, RepNum) %>%
+        arrange( `Final VA Family ID`) %>%
+        pivot_wider(id_cols = c('StationID','BenSampID','Collection Date', 'RepNum'), names_from = `Final VA Family ID`, values_from = Individuals) %>%
+        arrange(`Collection Date`)
+      datatable(z %>% 
+                  mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
+                  arrange(`Collection Date`), 
                 rownames = F, escape= F,  extensions = 'Buttons',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
-                               pageLength=nrow(stationBenthicsDateRange()), buttons=list('copy','colvis')))  })
+                               pageLength=nrow(z), buttons=list('copy','colvis')))  })
+    
+    
+    output$rawBenthicFamily <- DT::renderDataTable({req(stationBenthicsDateRange())
+      z <- stationBenthicsDateRange() %>%
+        left_join(dplyr::select(reactive_objects$masterTaxaGenus, `Final VA Family ID`,`FinalID`), by = 'FinalID') %>% 
+        group_by(StationID, BenSampID, `Collection Date`, RepNum, `Final VA Family ID`) %>% 
+        mutate(Individuals = sum(Individuals, na.rm = T)) %>% 
+        distinct(`Final VA Family ID`, .keep_all = T) %>% 
+        dplyr::select(StationID, BenSampID, `Collection Date`, RepNum, `Final VA Family ID`, Individuals, 
+                      Taxonomist, `Entered By`, `Entered Date`) %>% 
+        arrange(`Collection Date`)
+      datatable(z %>% 
+                  mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
+                  arrange(`Collection Date`), 
+                rownames = F, escape= F,  extensions = 'Buttons',
+                options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
+                               pageLength=nrow(z), buttons=list('copy','colvis')))  })
     
     # Benthic Data Visualization Tab
     
@@ -723,6 +761,39 @@ shinyServer(function(input, output, session) {
                 rownames = F, escape= F, extensions = 'Buttons',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(habObsStationDateRange()), buttons=list('copy','colvis') )) })
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
@@ -1229,8 +1300,7 @@ shinyServer(function(input, output, session) {
     
     
     # Raw benthics data crosstab and long
-    output$rawMultistationBenthicCrosstab <- DT::renderDataTable({
-      req(reactive_objects$benthics_Filter_crosstab)
+    output$rawMultistationBenthicCrosstabGenus <- DT::renderDataTable({req(reactive_objects$benthics_Filter_crosstab)
       datatable(reactive_objects$benthics_Filter_crosstab %>% 
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
                   arrange(StationID, `Collection Date`, RepNum), 
@@ -1239,14 +1309,50 @@ shinyServer(function(input, output, session) {
                                pageLength = nrow(reactive_objects$benthics_Filter_crosstab),
                                buttons=list('copy','colvis')))  })
     
-    output$rawMultistationBenthic <- DT::renderDataTable({
-      req(reactive_objects$benthics_Filter)
+    output$rawMultistationBenthicGenus <- DT::renderDataTable({req(reactive_objects$benthics_Filter)
       datatable(reactive_objects$benthics_Filter %>%
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
                   arrange(StationID, `Collection Date`, RepNum), 
                 rownames = F, escape= F, extensions = 'Buttons',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$benthics_Filter),
+                               buttons=list('copy','colvis')))  })
+    
+    output$rawMultistationBenthicCrosstabFamily <- DT::renderDataTable({req(reactive_objects$benthics_Filter_crosstab)
+      z <- reactive_objects$benthics_Filter %>%
+        left_join(dplyr::select(masterTaxaGenus, `Final VA Family ID`,`FinalID`), by = 'FinalID') %>% 
+        group_by(StationID, BenSampID, `Collection Date`, RepNum, `Final VA Family ID`) %>% 
+        mutate(Individuals = sum(Individuals, na.rm = T)) %>% 
+        distinct(`Final VA Family ID`, .keep_all = T) %>% 
+        dplyr::select(-FinalID) %>% 
+        ungroup() %>% 
+        group_by(StationID, BenSampID, `Collection Date`, RepNum) %>%
+        arrange(`Final VA Family ID`) %>%
+        pivot_wider(id_cols = c('StationID','BenSampID','Collection Date', 'RepNum'), names_from = `Final VA Family ID`, values_from = Individuals) %>%
+        mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
+        arrange(StationID, `Collection Date`, RepNum)
+      
+      datatable(z, rownames = F, escape= F, extensions = 'Buttons',
+                options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
+                               pageLength = nrow(z),
+                               buttons=list('copy','colvis')))  })
+    
+    output$rawMultistationBenthicFamily <- DT::renderDataTable({req(reactive_objects$benthics_Filter)
+      z <- filter(reactive_objects$benthics_Filter, BenSampID %in% reactive_objects$benSamps_Filter_fin$BenSampID) %>%
+        left_join(dplyr::select(masterTaxaGenus, `Final VA Family ID`,`FinalID`), by = 'FinalID') %>% 
+        group_by(StationID, BenSampID, RepNum, `Final VA Family ID`) %>% 
+        mutate(Individuals = sum(Individuals, na.rm = T)) %>% 
+        distinct(`Final VA Family ID`, .keep_all = T) %>% 
+        left_join(dplyr::select(reactive_objects$benSamps_Filter_fin, BenSampID, `Collection Date`)) %>%
+        dplyr::select(StationID, `Collection Date`, BenSampID, RepNum, `Final VA Family ID`, 
+                      Individuals, Taxonomist, `Entered By`, `Entered Date`) %>%
+        mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
+        arrange(StationID, `Collection Date`, RepNum)
+      
+      
+      datatable(z, rownames = F, escape= F, extensions = 'Buttons',
+                options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
+                               pageLength = nrow(z),
                                buttons=list('copy','colvis')))  })
     
     # Benthics Visualization Tools Tab
