@@ -61,21 +61,6 @@ shinyUI(fluidPage(theme= "yeti.css",
                                                               h4("SCI Metrics"),
                                                               DT::dataTableOutput('SCIresultsTable'),
                                                               br(), br(), br()), # a little breathing room
-                                                     tabPanel('Raw Benthic Data',
-                                                              tabsetPanel(
-                                                                tabPanel('Genus Level Crosstab View',
-                                                                         DT::dataTableOutput('rawBenthicCrosstabGenus'),
-                                                                         br(), br(), br()), # a little breathing room
-                                                                tabPanel('Genus Level Long View',
-                                                                         DT::dataTableOutput('rawBenthicGenus'),
-                                                                         br(), br(), br()),
-                                                                tabPanel('Family Level Crosstab View',
-                                                                         DT::dataTableOutput('rawBenthicCrosstabFamily'),
-                                                                         br(), br(), br()), # a little breathing room
-                                                                tabPanel('Family Level Long View',
-                                                                         DT::dataTableOutput('rawBenthicFamily'),
-                                                                         br(), br(), br())) # a little breathing room
-                                                     ),
                                                      tabPanel('Benthic Visualization Tools',
                                                               helpText('This tab combines various analysis tools from regional biologists to share data visualization
                                                                        techniques. Tools can be added to this section by contacting Emma Jones (emma.jones@deq.virginia.gov).'),
@@ -91,10 +76,34 @@ shinyUI(fluidPage(theme= "yeti.css",
                                                                        with various BCG attribute levels from different regional BCG projects. For more information 
                                                                        on the BCG process', 
                                                                        span(strong(a('click here.', href='https://www.deq.virginia.gov/home/showpublisheddocument?id=4303',
-                                                                              target='_blank')))), 
+                                                                                     target='_blank')))), 
                                                               DT::dataTableOutput('BCGattributes'),
-                                                              br(), br(), br())) # a little breathing room
-                                                     )),
+                                                              br(), br(), br()),# a little breathing room
+                                                     tabPanel('Raw Data Download Formats',
+                                                              tabsetPanel(
+                                                                tabPanel('Raw Genus Level Data Crosstab View',
+                                                                         DT::dataTableOutput('rawBenthicCrosstabGenus'),
+                                                                         br(), br(), br()), # a little breathing room
+                                                                tabPanel('Raw Genus Level Data Long View',
+                                                                         DT::dataTableOutput('rawBenthicGenus'),
+                                                                         br(), br(), br()),
+                                                                tabPanel('Raw Family Level Data Crosstab View',
+                                                                         DT::dataTableOutput('rawBenthicCrosstabFamily'),
+                                                                         br(), br(), br()), # a little breathing room
+                                                                tabPanel('Raw Family Level Data Long View',
+                                                                         DT::dataTableOutput('rawBenthicFamily'),
+                                                                         br(), br(), br()), # a little breathing room
+                                                                tabPanel('Benthic Stressor Analysis Data Formats',
+                                                                         helpText('This table displays benthic data for the selected station and filters for upload into
+                                                                                  the Benthic Stressor Analysis Tool.'),
+                                                                         h5(strong('The BSA tool only accepts .xlsx data format for this dataset.')),
+                                                                         DT::dataTableOutput('BSAbenthicData'),
+                                                                         helpText('This table displays habitat data for the selected station and filters for upload into
+                                                                                  the Benthic Stressor Analysis Tool.'),
+                                                                         h5(strong('The BSA tool only accepts .xlsx data format for this dataset.')),
+                                                                         DT::dataTableOutput('BSAhabitatData'),
+                                                                         br(), br(), br()))) # a little breathing room
+                                                     ))),
                                         tabPanel("Habitat Data",
                                                  sidebarPanel(
                                                    radioButtons('useBenthicDateRange', "Filter Habitat Data by Date", 
