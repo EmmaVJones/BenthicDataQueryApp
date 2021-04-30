@@ -93,16 +93,11 @@ shinyUI(fluidPage(theme= "yeti.css",
                                                                 tabPanel('Raw Family Level Data Long View',
                                                                          DT::dataTableOutput('rawBenthicFamily'),
                                                                          br(), br(), br()), # a little breathing room
-                                                                tabPanel('Benthic Stressor Analysis Data Formats',
+                                                                tabPanel('Benthic Stressor Analysis Data Format',
                                                                          helpText('This table displays benthic data for the selected station and filters for upload into
                                                                                   the Benthic Stressor Analysis Tool.'),
                                                                          h5(strong('The BSA tool only accepts .xlsx data format for this dataset.')),
-                                                                         DT::dataTableOutput('BSAbenthicData'),
-                                                                         helpText('This table displays habitat data for the selected station and filters for upload into
-                                                                                  the Benthic Stressor Analysis Tool.'),
-                                                                         h5(strong('The BSA tool only accepts .xlsx data format for this dataset.')),
-                                                                         DT::dataTableOutput('BSAhabitatData'),
-                                                                         br(), br(), br()))) # a little breathing room
+                                                                         DT::dataTableOutput('BSAbenthicData')))) # a little breathing room
                                                      ))),
                                         tabPanel("Habitat Data",
                                                  sidebarPanel(
@@ -134,20 +129,26 @@ shinyUI(fluidPage(theme= "yeti.css",
                                                               h4("Habitat Metrics"),
                                                               DT::dataTableOutput('habitatResultsTable'),
                                                               br(), br(), br()), # a little breathing room),
-                                                     tabPanel('Raw Habitat Data',
+                                                     tabPanel('Raw Data Download Formats',
                                                               tabsetPanel(
-                                                                tabPanel('Crosstab View',
+                                                                tabPanel('Raw Habitat Data Crosstab View',
                                                                          h4('Habitat Values'),
                                                                          DT::dataTableOutput('habitatValuesCrosstab'),
                                                                          h4('Habitat Observation'),
                                                                          DT::dataTableOutput('habitatObservationsCrossTab'),
                                                                          br(), br(), br() ),# a little breathing room )
-                                                                tabPanel('Long View',
+                                                                tabPanel('Raw Habitat Data Long View',
                                                                          h4('Habitat Values'),
                                                                          DT::dataTableOutput('habitatValues'),
                                                                          h4('Habitat Observation'),
                                                                          DT::dataTableOutput('habitatObservations'),
-                                                                         br(), br(), br() )# a little breathing room )
+                                                                         br(), br(), br() ),
+                                                                tabPanel("Benthic Stressor Analysis Data Format",
+                                                                         helpText('This table displays habitat data for the selected station and filters for upload into
+                                                                                  the Benthic Stressor Analysis Tool.'),
+                                                                         h5(strong('The BSA tool only accepts .xlsx data format for this dataset.')),
+                                                                         DT::dataTableOutput('BSAhabitatData'),
+                                                                         br(), br(), br())# a little breathing room )
                                                               ) )))))),
                              
                              tabPanel('Multiple Station Query (Archived Data Refreshed Weekly)',

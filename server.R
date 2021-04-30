@@ -481,7 +481,61 @@ shinyServer(function(input, output, session) {
                                pageLength= nrow(reactive_objects$sciTable), buttons=list('copy','colvis')))  })
     
     
-    ### Raw Benthic Tab
+    
+    
+    # Benthic Data Visualization Tab
+    
+    # SCI Seasonal Crosstab Table
+    
+    #    output$metric_UI <- renderUI({
+    #      req(reactive_objects$SCIresults)
+    #      selectInput('metric', 'Select Metric to Analyze', 
+    #                  choices = names(dplyr::select(reactive_objects$SCIresults, `Family Total Taxa`:`SCI Score`) %>%
+    #                                    dplyr::select(`SCI Score`, everything()))) }) # crazy way to select unknown columns
+    #    
+    #    output$SCIseasonalCrosstab <- DT::renderDataTable({
+    #      req(reactive_objects$SCIresults, input$metric)
+    #      z <- SCI_crosstab_Billy(crosstabTemplate, reactive_objects$SCIresults,
+    #                              WQM_Station_Full_REST() %>% st_drop_geometry(), input$metric)#`SCI Score`)
+    #      
+    #      datatable(dplyr::select(z, StationID:`Family Total Taxa`) %>% dplyr::select(-c(`Family Total Taxa`)), # crazy way to include unexpected columns
+    #                rownames = F, escape= F, extensions = 'Buttons',
+    #                options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
+    #                               pageLength = nrow(z),
+    #                               buttons=list('copy','colvis')))  })
+    
+    
+    
+    # Benthic Individuals BenSamp Crosstab
+    
+    output$benthicIndividualsBensampCrosstab <- DT::renderDataTable({ req(stationBenthicsDateRange(), input$genusOrFamily)
+      z <- benthics_crosstab_Billy(stationBenthicsDateRange(), masterTaxaGenus, genusOrFamily = input$genusOrFamily)
+      #print(z)
+      
+      datatable(z, #dplyr::select(z, StationID:`Collection Date`) %>% dplyr::select(-c(`Collection Date`)), # crazy way to include unexpected columns
+                rownames = F, escape= F, extensions = 'Buttons',
+                options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
+                               pageLength = nrow(z),
+                               buttons=list('copy','colvis')))  })
+    
+    
+    
+    ## BCG Attributes Table
+    output$BCGattributes <-  DT::renderDataTable({ req(stationBenthicsDateRange())
+      BCGtable <- stationBenthicsDateRange() %>% 
+        dplyr::select(`Collection Date`:Individuals) %>% 
+        mutate(`Collection Date` = as.Date(`Collection Date`)) %>% 
+        left_join(dplyr::select(BCGattVal, FinalID, `Taxonomic Notes`: `BCGatt Comment`), by = 'FinalID')
+      datatable(BCGtable,  rownames = F, escape= F,  extensions = 'Buttons',
+                options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
+                               pageLength=nrow(BCGtable), buttons=list('copy','colvis'))) %>% 
+        formatStyle(names(BCGtable)[c(8:21, 23:29)], backgroundColor = styleInterval(bcgAttributeColors $brks, bcgAttributeColors$clrs)) })
+    
+    
+    
+    
+    
+    ### Benthics Data Download Tab
     rawBenthicsCrosstab <- reactive({
       req(stationBenthicsDateRange())
       stationBenthicsDateRange() %>%
@@ -546,55 +600,18 @@ shinyServer(function(input, output, session) {
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
                                pageLength=nrow(z), buttons=list('copy','colvis')))  })
     
-    # Benthic Data Visualization Tab
     
-    # SCI Seasonal Crosstab Table
-    
-#    output$metric_UI <- renderUI({
-#      req(reactive_objects$SCIresults)
-#      selectInput('metric', 'Select Metric to Analyze', 
-#                  choices = names(dplyr::select(reactive_objects$SCIresults, `Family Total Taxa`:`SCI Score`) %>%
-#                                    dplyr::select(`SCI Score`, everything()))) }) # crazy way to select unknown columns
-#    
-#    output$SCIseasonalCrosstab <- DT::renderDataTable({
-#      req(reactive_objects$SCIresults, input$metric)
-#      z <- SCI_crosstab_Billy(crosstabTemplate, reactive_objects$SCIresults,
-#                              WQM_Station_Full_REST() %>% st_drop_geometry(), input$metric)#`SCI Score`)
-#      
-#      datatable(dplyr::select(z, StationID:`Family Total Taxa`) %>% dplyr::select(-c(`Family Total Taxa`)), # crazy way to include unexpected columns
-#                rownames = F, escape= F, extensions = 'Buttons',
-#                options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
-#                               pageLength = nrow(z),
-#                               buttons=list('copy','colvis')))  })
-    
-    
-    
-    # Benthic Individuals BenSamp Crosstab
-    
-    output$benthicIndividualsBensampCrosstab <- DT::renderDataTable({ req(stationBenthicsDateRange(), input$genusOrFamily)
-      z <- benthics_crosstab_Billy(stationBenthicsDateRange(), masterTaxaGenus, genusOrFamily = input$genusOrFamily)
-      #print(z)
-      
-      datatable(z, #dplyr::select(z, StationID:`Collection Date`) %>% dplyr::select(-c(`Collection Date`)), # crazy way to include unexpected columns
-                rownames = F, escape= F, extensions = 'Buttons',
+    ## BSA benthics Data download tab
+    output$BSAbenthicData <- DT::renderDataTable({req(stationBenthicsDateRange())
+      z <- BSAbenthicOutputFunction(input$SCIchoice, SCIresults(), WQM_Station_Full_REST())
+      datatable(z, rownames = F, escape= F, extensions = 'Buttons',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
-                               pageLength = nrow(z),
-                               buttons=list('copy','colvis')))  })
+                               pageLength = nrow(z),  buttons=list('copy',
+                                                                   list(extend='csv',filename=paste0('BSAbenthicTemplateData',input$station, Sys.Date())),
+                                                                   list(extend='excel',filename=paste0('BSAbenthicTemplateData',input$station, Sys.Date())),
+                                                                   'colvis')), selection = 'none') })
     
-    
-    
-    ## BCG Attributes Table
-    output$BCGattributes <-  DT::renderDataTable({ req(stationBenthicsDateRange())
-      BCGtable <- stationBenthicsDateRange() %>% 
-        dplyr::select(`Collection Date`:Individuals) %>% 
-        mutate(`Collection Date` = as.Date(`Collection Date`)) %>% 
-        left_join(dplyr::select(BCGattVal, FinalID, `Taxonomic Notes`: `BCGatt Comment`), by = 'FinalID')
-      datatable(BCGtable,  rownames = F, escape= F,  extensions = 'Buttons',
-                options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
-                               pageLength=nrow(BCGtable), buttons=list('copy','colvis'))) %>% 
-        formatStyle(names(BCGtable)[c(8:21, 23:29)], backgroundColor = styleInterval(bcgAttributeColors $brks, bcgAttributeColors$clrs)) })
-      
-      
+
     
     
     
@@ -707,7 +724,7 @@ shinyServer(function(input, output, session) {
     
     
     
-    ## Raw Habitat Results Tab
+    ## Habitat Data download Tab
     habitatValuesCrosstab <- reactive({
       req(habValuesStationDateRange())
       habValuesStationDateRange() %>%
@@ -763,6 +780,15 @@ shinyServer(function(input, output, session) {
                                pageLength = nrow(habObsStationDateRange()), buttons=list('copy','colvis') )) })
     
     
+    ### BSA habitat data download tab
+    output$BSAhabitatData <- DT::renderDataTable({req(habValuesStationDateRange())
+      z <- BSAhabitatOutputFunction(habValues_totHab(), habValuesStationDateRange())
+      datatable(z, rownames = F, escape= F, extensions = 'Buttons',
+                options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
+                               pageLength = nrow(z),  buttons=list('copy',
+                                                                   list(extend='csv',filename=paste0('BSAhabitatTemplateData',input$station, Sys.Date())),
+                                                                   list(extend='excel',filename=paste0('BSAhabitatTemplateData',input$station, Sys.Date())),
+                                                                   'colvis')), selection = 'none') })
     
     
     
@@ -1354,8 +1380,7 @@ shinyServer(function(input, output, session) {
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(z),
                                buttons=list('copy','colvis')))  })
-    
-    # Benthics Visualization Tools Tab
+
     
     # SCI Seasonal Crosstab Table
     

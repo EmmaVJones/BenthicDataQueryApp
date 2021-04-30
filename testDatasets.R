@@ -149,7 +149,7 @@ stationInfoBenSamps <- pool %>% tbl("Edas_Benthic_Sample_View") %>%
 
 ## Habitat data must be reactive to adjusted to benthic or habitat date filter
 habSampleStation <- pool %>% tbl("Edas_Habitat_Sample_View") %>%
-  #filter(STA_ID %in% !! toupper(station)) %>%
+  filter(STA_ID %in% !! toupper(station)) %>%
   as_tibble() %>%
   rename("StationID" = "STA_ID",
          "HabSampID" = "WHS_SAMP_ID",
@@ -283,6 +283,13 @@ SCIresults <- SCI(stationBenthicsDateRange = stationBenthicsDateRange, SCIchoice
 
 
 SCIresults$Season <- factor(SCIresults$Season,levels=c("Spring","Outside Sample Window","Fall"))#,ordered=T)
+
+
+## BSA benthics output
+BSAbenthicOutputFunction(SCIchoice = 'VCPMI - 65', SCIresults, WQM_Station_Full)
+
+
+
 
 
 
@@ -567,6 +574,16 @@ habValues_totHab %>%
 
 #
 
+
+### BSA habitat output
+BSAhabitatOutputFunction <- function(habValues_totHab, habValuesStationDateRange){
+  left_join(dplyr::select(habValuesStationDateRange, HabSampID, CollDate = `Collection Date`, HabParameter, HabValue),
+            dplyr::select(habValues_totHab, HabSampID, StationID, `Total Habitat Score`),
+            by = 'HabSampID') %>% 
+    dplyr::select(StationID, CollDate, HabParameter, HabValue, TotHabSc = `Total Habitat Score`) %>% 
+    arrange(CollDate)
+}
+BSAhabitatOutput <- BSAhabitatOutputFunction(habValues_totHab, habValuesStationDateRange)
 
 
 

@@ -33,35 +33,35 @@ board_register_rsconnect(key = conn$CONNECT_API_KEY,  #Sys.getenv("CONNECT_API_K
 
 
 # Set up pool connection to production environment
-# pool <- dbPool(
-#   drv = odbc::odbc(),
-#   Driver = "SQLServer",   # note the LACK OF space between SQL and Server ( how RStudio named driver)
-#   # Production Environment
-#   Server= "DEQ-SQLODS-PROD,50000",
-#   dbname = "ODS",
-#   UID = conn$UID_prod,
-#   PWD = conn$PWD_prod,
-#   #UID = Sys.getenv("userid_production"), # need to change in Connect {vars}
-#   #PWD = Sys.getenv("pwd_production")   # need to change in Connect {vars}
-#   # Test environment
-#   #Server= "WSQ04151,50000",
-#   #dbname = "ODS_test",
-#   #UID = Sys.getenv("userid"),  # need to change in Connect {vars}
-#   #PWD = Sys.getenv("pwd"),  # need to change in Connect {vars}
-#   trusted_connection = "yes"
-# )
+pool <- dbPool(
+  drv = odbc::odbc(),
+  Driver = "SQLServer",   # note the LACK OF space between SQL and Server ( how RStudio named driver)
+  # Production Environment
+  Server= "DEQ-SQLODS-PROD,50000",
+  dbname = "ODS",
+  UID = conn$UID_prod,
+  PWD = conn$PWD_prod,
+  #UID = Sys.getenv("userid_production"), # need to change in Connect {vars}
+  #PWD = Sys.getenv("pwd_production")   # need to change in Connect {vars}
+  # Test environment
+  #Server= "WSQ04151,50000",
+  #dbname = "ODS_test",
+  #UID = Sys.getenv("userid"),  # need to change in Connect {vars}
+  #PWD = Sys.getenv("pwd"),  # need to change in Connect {vars}
+  trusted_connection = "yes"
+)
 onStop(function() {
   poolClose(pool)
 })
 
 ## For testing: connect to ODS production
-pool <- dbPool(
-  drv = odbc::odbc(),
-  Driver = "ODBC Driver 11 for SQL Server",#Driver = "SQL Server Native Client 11.0",
-  Server= "DEQ-SQLODS-PROD,50000",
-  dbname = "ODS",
-  trusted_connection = "yes"
-)
+# pool <- dbPool(
+#   drv = odbc::odbc(),
+#   Driver = "ODBC Driver 11 for SQL Server",#Driver = "SQL Server Native Client 11.0",
+#   Server= "DEQ-SQLODS-PROD,50000",
+#   dbname = "ODS",
+#   trusted_connection = "yes"
+# )
 
 ## For testing: Connect to ODS_test
 # establish db connection locally
@@ -427,11 +427,11 @@ benthics_crosstab_Billy <- function(benthics_Filter, masterTaxaGenus, genusOrFam
 #crosstabTemplate <- as_tibble(sapply(colOrder, function(colOrder) numeric())) %>%
 #  mutate_at(vars(StationID, BenSampID, BASINS_HU_12_NAME, WQM_STA_DESC, SCI), as.character)
 
-colOrder <- c('StationID', 'BASINS_HU_12_NAME', 'WQM_STA_DESC', 'RepNum', 'Gradient', 'SCI',
+colOrder <- c('StationID', 'BASINS_HU_12_NAME', 'EPA_ECO_US_L3CODE', 'WQM_STA_DESC', 'RepNum', 'Gradient', 'SCI',
               paste(rep(1970:year(Sys.Date()), times=1, each = 3), c('Spring','Fall','Outside Sample Window')))
 
 crosstabTemplate <- as_tibble(sapply(colOrder, function(colOrder) numeric())) %>%
-  mutate_at(vars(StationID, BASINS_HU_12_NAME, WQM_STA_DESC, Gradient, SCI), as.character)
+  mutate_at(vars(StationID, BASINS_HU_12_NAME, EPA_ECO_US_L3CODE, WQM_STA_DESC, Gradient, SCI), as.character)
 
 
 #SCI_crosstab_Billy_old <- function(crosstabTemplate, SCI_filter, WQM_Station_Full, columnToPlot){
@@ -460,23 +460,85 @@ SCI_crosstab_Billy <- function(crosstabTemplate, SCI_filter, WQM_Station_Full, c
     bind_rows(
       SCI_filter %>%
         mutate(Year = year(`Collection Date`)) %>%
-        left_join(dplyr::select(WQM_Station_Full, STATION_ID, WQM_STA_DESC, BASINS_HU_12_NAME),
+        left_join(dplyr::select(WQM_Station_Full, STATION_ID, WQM_STA_DESC, BASINS_HU_12_NAME, EPA_ECO_US_L3CODE),
                   by = c('StationID' = 'STATION_ID')) %>%
         distinct(BenSampID, .keep_all = T) %>%
         mutate(`Year Season` = paste(Year, Season)) %>%
         #dplyr::select(StationID, BenSampID, BASINS_HU_12_NAME, WQM_STA_DESC, RepNum, SCI, {{ columnToPlot }}, `Year Season`) %>%
-        group_by(StationID, BenSampID, BASINS_HU_12_NAME, WQM_STA_DESC, RepNum) %>%
+        group_by(StationID, BenSampID, BASINS_HU_12_NAME, EPA_ECO_US_L3CODE, WQM_STA_DESC, RepNum) %>%
         pivot_wider(names_from = `Year Season`, values_from = {{ columnToPlot }} ) %>%
         ungroup() %>%
         #group_by(StationID, BASINS_HU_12_NAME, WQM_STA_DESC, RepNum, Gradient) %>%
         mutate(endColumn = NA) %>%
         dplyr::select(StationID, WQM_STA_DESC, RepNum, Gradient, SCI, BASINS_HU_12_NAME:endColumn) %>%
         dplyr::select(-endColumn) %>%
-        pivot_longer(!c(StationID, BASINS_HU_12_NAME, WQM_STA_DESC, RepNum, Gradient, SCI), 
+        pivot_longer(!c(StationID, BASINS_HU_12_NAME, EPA_ECO_US_L3CODE, WQM_STA_DESC, RepNum, Gradient, SCI), 
                      names_to = 'Year Season', values_to = 'metricChosen', values_drop_na = TRUE) %>%
         pivot_wider(names_from = `Year Season`, values_from = metricChosen,
                     values_fn = list(metricChosen = mean) ) %>%
-        dplyr::select(StationID, BASINS_HU_12_NAME, WQM_STA_DESC, RepNum, Gradient, SCI, everything())) %>% 
+        dplyr::select(StationID, BASINS_HU_12_NAME, EPA_ECO_US_L3CODE, WQM_STA_DESC, RepNum, Gradient, SCI, everything())) %>% 
     purrr::discard(~all(is.na(.))) %>%
     arrange(StationID, SCI) 
 }
+
+
+
+### BSA benthic output
+BSAbenthicOutputFunction <- function(SCIchoice, SCIresults, WQM_Station_Full){
+  if(SCIchoice == 'VSCI'){
+    return(SCIresults %>% 
+             left_join(dplyr::select(WQM_Station_Full, StationID = STATION_ID, StreamName = WQM_STA_STREAM_NAME, DEQREG = WQM_STA_REC_CODE,
+                                     Basin = WQS_BASIN_CODE, EcoregionCode = EPA_ECO_US_L3CODE, Ecoregion = EPA_ECO_US_L3NAME, 
+                                     Subecoregion = EPA_ECO_US_L4NAME) %>% 
+                         mutate(County = NA),
+                       by = 'StationID') %>% 
+             mutate(Year = year(`Collection Date`),
+                    `Sample Season` = paste(Season, Year)) %>%  
+             dplyr::select(BenSampID, Target_Count = `Target Count`, StationID, StreamName, DEQREG, Location = Sta_Desc, CollDate = `Collection Date`, 
+                           CollMeth = Gradient, Collector = `Collected By`, Basin, County, EcoregionCode,	Ecoregion, Subecoregion, `Sample Season`,
+                           RepNum, FamTotTaxa = `Family Total Taxa`, FamEPTTax = `Family EPT Taxa`,	`%Ephem`,	`%PT - Hydropsychidae`,
+                           `Fam%Scrap` = `%FamilyScraper`, `%Chiro`, `Fam%2Dom` = `Family %2 Dominant`, FamHBI = `Family HBI`, `%Ephem Score`,
+                           `%PT-H Score`, Season, Year, `Fam Richness Score`, `%Chironomidae Score`, `Fam EPT Score`, `Fam %Scraper Score`, `Fam %2Dom Score`,
+                           `Fam %MFBI Score`, `Fam SCI` = `SCI Score`)) }
+  if(SCIchoice == 'VCPMI + 63'){
+    return(SCIresults %>% 
+             left_join(dplyr::select(WQM_Station_Full, StationID = STATION_ID, StreamName = WQM_STA_STREAM_NAME, DEQREG = WQM_STA_REC_CODE,
+                                     Basin = WQS_BASIN_CODE, EcoregionCode = EPA_ECO_US_L3CODE, Ecoregion = EPA_ECO_US_L3NAME, 
+                                     Subecoregion = EPA_ECO_US_L4NAME) %>% 
+                         mutate(County = NA),
+                       by = 'StationID') %>% 
+             mutate(Year = year(`Collection Date`),
+                    `Sample Season` = paste(Season, Year)) %>%  
+             dplyr::select(BenSampID, StationID, StreamName, Location = Sta_Desc, Basin, EcoregionCode,	Ecoregion, Subecoregion, County, 
+                           CollDate = `Collection Date`, Collector = `Collected By`, CollMeth = Gradient, Target_Count = `Target Count`, 
+                           RepNum, TotTaxa = `Family Total Taxa`, HBI = `Family HBI`, EPTTax = `Family EPT Taxa`, `%Ephem`,	`%PT - Hydropsychidae`,
+                           `%5Dom` = `Family %5 Dominant`, `%ClngP-HS`, `Richness Score`, RichnessFinal = `Richness Final`, HBIScore = `HBI Score`, HBIFinal = `HBI Final`,
+                           `EPT Score`, EPTFinal = `EPT Final`, EPHEM, `PT-H`, `Pct5DOM`, `PctClng-HS`, `CPMI63+CHOWAN` = `SCI Score`) ) }
+  if(SCIchoice == 'VCPMI - 65'){
+    return(SCIresults %>% 
+             left_join(dplyr::select(WQM_Station_Full, StationID = STATION_ID, StreamName = WQM_STA_STREAM_NAME, DEQREG = WQM_STA_REC_CODE,
+                                     Basin = WQS_BASIN_CODE, EcoregionCode = EPA_ECO_US_L3CODE, Ecoregion = EPA_ECO_US_L3NAME, 
+                                     Subecoregion = EPA_ECO_US_L4NAME) %>% 
+                         mutate(County = NA),
+                       by = 'StationID') %>% 
+             mutate(Year = year(`Collection Date`),
+                    `Sample Season` = paste(Season, Year)) %>%  
+             dplyr::select(BenSampID, StationID, StreamName, Location = Sta_Desc, Basin, EcoregionCode,	Ecoregion, Subecoregion,  
+                           CollDate = `Collection Date`, Collector = `Collected By`, CollMeth = Gradient, County, Target_Count = `Target Count`, 
+                           RepNum, TotTaxa = `Family Total Taxa`, HBI = `Family HBI`, EPTTax = `Family EPT Taxa`, `%Ephem`,	`%PT - Hydropsychidae`,
+                           `%ClngP-HS`, `%Scrap`, `%Intoler`, `Richness Score`, RichnessFinal = `Richness Final`, HBIScore = `HBI Score`, 
+                           HBIFinal = `HBI Final`, `EPT Score`, EPTFinal = `EPT Final`, EPHEM, `PT-H`, PctScrap, `PctClng-HS`, 
+                           `CPMI65-CHOWAN` = `SCI Score`) ) }
+}
+#BSAbenthicOutputFunction(SCIchoice = 'VCPMI - 65', SCIresults, WQM_Station_Full_REST)
+
+
+### BSA habitat output
+BSAhabitatOutputFunction <- function(habValues_totHab, habValuesStationDateRange){
+  left_join(dplyr::select(habValuesStationDateRange, HabSampID, CollDate = `Collection Date`, HabParameter, HabValue),
+            dplyr::select(habValues_totHab, HabSampID, StationID, `Total Habitat Score`),
+            by = 'HabSampID') %>% 
+    dplyr::select(StationID, CollDate, HabParameter, HabValue, TotHabSc = `Total Habitat Score`) %>% 
+    arrange(CollDate)
+}
+#BSAhabitatOutput <- BSAhabitatOutputFunction(habValues_totHab, habValuesStationDateRange)
