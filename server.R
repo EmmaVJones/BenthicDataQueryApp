@@ -264,7 +264,7 @@ shinyServer(function(input, output, session) {
     output$stationInfoTable <- DT::renderDataTable({
       req(reactive_objects$stationInfoFin)
       datatable(reactive_objects$stationInfoFin %>% distinct(Sta_Id, .keep_all = T), 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bt', scrollX= TRUE, scrollY = '100px',
                                pageLength = nrow(reactive_objects$stationInfoFin %>% distinct(Sta_Id, .keep_all = T)),
                                buttons=list('copy','colvis')))  })
@@ -272,7 +272,7 @@ shinyServer(function(input, output, session) {
     output$stationInfoSampleCodeMetrics <- DT::renderDataTable({
       req(reactive_objects$stationInfoFin)
       datatable(reactive_objects$stationInfoSampleMetrics, 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bt', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$stationInfoSampleMetrics),
                                buttons=list('copy','colvis')) ) })
@@ -376,20 +376,20 @@ shinyServer(function(input, output, session) {
     ## Sampling Metrics Tab
     output$averageSamplingMetrics <- renderDataTable({
       req(reactive_objects$avgSCI)
-      datatable(reactive_objects$avgSCI, rownames = F, escape= F, extensions = 'Buttons',
+      datatable(reactive_objects$avgSCI, rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bit', scrollY = '250px', pageLength = nrow(reactive_objects$avgSCI),buttons=list('copy','colvis'))) })
     
     output$collectorMetrics <- renderDataTable({
       req(reactive_objects$stationInfoBenSampsDateRange,stationBenthicsDateRange())
       z <- uniqueCollector(reactive_objects$stationInfoBenSampsDateRange)
-      datatable(z, rownames = F, escape= F,extensions = 'Buttons',
+      datatable(z, rownames = F, escape= F,extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bt', scrollY = '75px',
                                pageLength = nrow(z),buttons=list('copy'))) })
     
     output$taxonomistMetrics <- renderDataTable({
       req(reactive_objects$stationInfoBenSampsDateRange,stationBenthicsDateRange())
       z <- uniqueTaxonomist(reactive_objects$stationInfoBenSampsDateRange)
-      datatable(z, rownames = F, escape= F, extensions = 'Buttons',
+      datatable(z, rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bt', scrollY = '75px',
                                pageLength = nrow(z),buttons=list('copy'))) })
     
@@ -399,7 +399,7 @@ shinyServer(function(input, output, session) {
                   mutate(`Collection Date` = as.Date(`Collection Date`),
                          `Entered Date` = as.Date(`Entered Date`)) %>%
                   arrange(`Collection Date`), 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bit', scrollX = TRUE, scrollY = '350px',
                                pageLength = nrow(reactive_objects$stationInfoBenSampsDateRange), buttons=list('copy','colvis')))})
     
@@ -476,7 +476,7 @@ shinyServer(function(input, output, session) {
     output$SCIresultsTable <- DT::renderDataTable({
       req(reactive_objects$sciTable)
       datatable(reactive_objects$sciTable  %>% mutate(`Collection Date` = as.Date(`Collection Date`)), 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bit', scrollX= TRUE, scrollY = '250px', 
                                pageLength= nrow(reactive_objects$sciTable), buttons=list('copy','colvis')))  })
     
@@ -509,11 +509,11 @@ shinyServer(function(input, output, session) {
     # Benthic Individuals BenSamp Crosstab
     
     output$benthicIndividualsBensampCrosstab <- DT::renderDataTable({ req(stationBenthicsDateRange(), input$genusOrFamily)
-      z <- benthics_crosstab_Billy(stationBenthicsDateRange(), masterTaxaGenus, genusOrFamily = input$genusOrFamily)
+      z <- benthics_crosstab_Billy(stationBenthicsDateRange(), reactive_objects$masterTaxaGenus, genusOrFamily = input$genusOrFamily)
       #print(z)
       
       datatable(z, #dplyr::select(z, StationID:`Collection Date`) %>% dplyr::select(-c(`Collection Date`)), # crazy way to include unexpected columns
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(z),
                                buttons=list('copy','colvis')))  })
@@ -526,10 +526,29 @@ shinyServer(function(input, output, session) {
         dplyr::select(`Collection Date`:Individuals) %>% 
         mutate(`Collection Date` = as.Date(`Collection Date`)) %>% 
         left_join(dplyr::select(BCGattVal, FinalID, `Taxonomic Notes`: `BCGatt Comment`), by = 'FinalID')
-      datatable(BCGtable,  rownames = F, escape= F,  extensions = 'Buttons',
+      datatable(BCGtable,  rownames = F, escape= F,  extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
                                pageLength=nrow(BCGtable), buttons=list('copy','colvis'))) %>% 
         formatStyle(names(BCGtable)[c(8:21, 23:29)], backgroundColor = styleInterval(bcgAttributeColors $brks, bcgAttributeColors$clrs)) })
+    
+    
+    ## FFG Data and Plot
+    FFGdata <- reactive({req(stationBenthicsDateRange())
+      left_join(stationBenthicsDateRange(), 
+                dplyr::select(reactive_objects$masterTaxaGenus, FinalID,`Final VA Family ID`:FamHabit), 
+                         by = 'FinalID') %>% 
+        dplyr::select(-c(Taxonomist:`Entered Date`))})
+    
+    output$FFGplot <- renderPlot({req(FFGdata(), input$FFGgenusOrFamily)
+      FFGstackedBarPlotFunction(FFGdata(), reactive_objects$masterTaxaGenus, input$FFGgenusOrFamily)})
+    
+    output$FFGdataTable <-  DT::renderDataTable({ req(FFGdata())
+      datatable(FFGdata(),  rownames = F, escape= F,  extensions = 'Buttons', selection = 'none',
+                options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
+                               pageLength=nrow(FFGdata()), buttons=list('copy',
+                                                                        list(extend='csv',filename=paste0('FFGdata',input$station, Sys.Date())),
+                                                                        list(extend='excel',filename=paste0('FFGdata',input$station, Sys.Date())),
+                                                                        'colvis'))) })
     
     
     
@@ -549,7 +568,7 @@ shinyServer(function(input, output, session) {
       datatable(rawBenthicsCrosstab() %>% 
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
                   arrange(`Collection Date`), 
-                rownames = F, escape= F,  extensions = 'Buttons',
+                rownames = F, escape= F,  extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
                                pageLength=nrow(rawBenthicsCrosstab()), buttons=list('copy','colvis')))  })
     
@@ -559,7 +578,7 @@ shinyServer(function(input, output, session) {
         mutate(`Collection Date` = as.Date(`Collection Date`),
                `Entered Date` = as.Date(`Entered Date`)) %>% 
         dplyr::select(StationID, BenSampID, `Collection Date`, RepNum, everything()) 
-      datatable(z, rownames = F, escape= F,  extensions = 'Buttons',
+      datatable(z, rownames = F, escape= F,  extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
                                pageLength=nrow(z), buttons=list('copy','colvis')))  })
     
@@ -579,7 +598,7 @@ shinyServer(function(input, output, session) {
       datatable(z %>% 
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
                   arrange(`Collection Date`), 
-                rownames = F, escape= F,  extensions = 'Buttons',
+                rownames = F, escape= F,  extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
                                pageLength=nrow(z), buttons=list('copy','colvis')))  })
     
@@ -596,7 +615,7 @@ shinyServer(function(input, output, session) {
       datatable(z %>% 
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
                   arrange(`Collection Date`), 
-                rownames = F, escape= F,  extensions = 'Buttons',
+                rownames = F, escape= F,  extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
                                pageLength=nrow(z), buttons=list('copy','colvis')))  })
     
@@ -667,19 +686,19 @@ shinyServer(function(input, output, session) {
     ## Habitat Sampling Metrics Tab
     output$averageTotalHabitatMetrics <-  renderDataTable({
       req(avgTotalHab())
-      datatable(avgTotalHab(), rownames = F, escape= F,  extensions = 'Buttons',
+      datatable(avgTotalHab(), rownames = F, escape= F,  extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bit', scrollY = '250px', pageLength = nrow(avgTotalHab()), buttons=list('copy','colvis'))) })
     
     output$fieldTeamMetrics <- renderDataTable({
       req(habitatSampleDateRange())
       z <- uniqueFieldTeam(habitatSampleDateRange())
-      datatable(z, rownames = F, escape= F, extensions = 'Buttons',
+      datatable(z, rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bt', scrollY = '150px', pageLength = nrow(z), buttons=list('copy'))) })
     
     output$habObsMetrics <- renderDataTable({
       req(habObsStationDateRange())
       z <- habObsMetrics(habObsStationDateRange())
-      datatable(z, rownames = F, escape= F, extensions = 'Buttons',
+      datatable(z, rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bt', scrollY = '150px', pageLength = nrow(z), buttons=list('copy'))) })
     
     output$habitatSamplingInformation <- renderDataTable({
@@ -688,7 +707,7 @@ shinyServer(function(input, output, session) {
                   mutate(`Collection Date` = as.Date(`Collection Date`),
                          `Entered Date` = as.Date(`Entered Date`)) %>%
                   arrange(`Collection Date`), 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bit', scrollX = TRUE, scrollY = '150px',
                                pageLength = nrow(habitatSampleDateRange()), buttons=list('copy','colvis'))) })
     
@@ -738,7 +757,7 @@ shinyServer(function(input, output, session) {
       datatable(habitatValuesCrosstab() %>% 
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
                   arrange(`Collection Date`), 
-                rownames = F, escape= F, extensions = 'Buttons', 
+                rownames = F, escape= F, extensions = 'Buttons',  selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(habitatValuesCrosstab()), buttons=list('copy','colvis')))  })
     
@@ -754,7 +773,7 @@ shinyServer(function(input, output, session) {
       datatable(habitatObservationsCrossTab() %>% 
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
                   arrange(`Collection Date`), 
-                rownames = F, escape= F, extensions = 'Buttons', 
+                rownames = F, escape= F, extensions = 'Buttons',  selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(habitatObservationsCrossTab()), buttons=list('copy','colvis')))  })
     
@@ -766,7 +785,7 @@ shinyServer(function(input, output, session) {
       datatable(habValuesStationDateRange() %>% 
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
                   arrange(`Collection Date`), 
-                rownames = F, escape= F, extensions = 'Buttons', 
+                rownames = F, escape= F, extensions = 'Buttons',  selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(habValuesStationDateRange()), buttons=list('copy','colvis')))  })
     
@@ -775,7 +794,7 @@ shinyServer(function(input, output, session) {
       datatable(habObsStationDateRange() %>% 
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
                   arrange(`Collection Date`), 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(habObsStationDateRange()), buttons=list('copy','colvis') )) })
     
@@ -1112,7 +1131,7 @@ shinyServer(function(input, output, session) {
     output$multistationInfoTable <- DT::renderDataTable({
       req(reactive_objects$multistationSelection)
       datatable(reactive_objects$multistationSelection %>% distinct(Sta_Id, .keep_all = T) %>% arrange(Sta_Id), 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$multistationSelection %>% distinct(Sta_Id, .keep_all = T)),
                                buttons=list('copy','colvis')))  })
@@ -1120,7 +1139,7 @@ shinyServer(function(input, output, session) {
     output$multistationInfoSampleMetrics <- DT::renderDataTable({
       req(reactive_objects$multistationInfoSampleMetrics)
       datatable(reactive_objects$multistationInfoSampleMetrics, 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$multistationInfoSampleMetrics),
                                buttons=list('copy','colvis')) ) })
@@ -1263,7 +1282,7 @@ shinyServer(function(input, output, session) {
     output$averageSamplingMetrics_bySelection  <- DT::renderDataTable({
       req(reactive_objects$avgSCIselection)
       datatable(reactive_objects$avgSCIselection, 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '100px',
                                pageLength = nrow(reactive_objects$avgSCIselection),
                                buttons=list('copy','colvis')))  })
@@ -1271,7 +1290,7 @@ shinyServer(function(input, output, session) {
     output$averageSamplingMetrics_byStation  <- DT::renderDataTable({
       req(reactive_objects$avgSCIstations)
       datatable(reactive_objects$avgSCIstations, 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$avgSCIstations),
                                buttons=list('copy','colvis')))  }) 
@@ -1279,14 +1298,14 @@ shinyServer(function(input, output, session) {
     output$collectorMetrics_multistation <- renderDataTable({
       req(reactive_objects$benSamps_Filter_fin)
       z <- uniqueCollector(reactive_objects$benSamps_Filter_fin)
-      datatable(z, rownames = F, escape= F,extensions = 'Buttons',
+      datatable(z, rownames = F, escape= F,extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bt', scrollY = '150px',
                                pageLength = nrow(z),buttons=list('copy'))) })
     
     output$taxonomistMetrics_multistation <- renderDataTable({
       req(reactive_objects$benSamps_Filter_fin)
       z <- uniqueTaxonomist(reactive_objects$benSamps_Filter_fin)
-      datatable(z, rownames = F, escape= F, extensions = 'Buttons',
+      datatable(z, rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bt', scrollY = '150px',
                                pageLength = nrow(z),buttons=list('copy'))) })
     
@@ -1294,7 +1313,7 @@ shinyServer(function(input, output, session) {
       req(reactive_objects$benSamps_Filter_fin)
       datatable(reactive_objects$benSamps_Filter_fin %>% mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
                   arrange(StationID, `Collection Date`, RepNum), 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$benSamps_Filter_fin),
                                buttons=list('copy','colvis')))  })
@@ -1305,7 +1324,7 @@ shinyServer(function(input, output, session) {
       req(reactive_objects$SCI_filter)
       datatable(reactive_objects$SCI_filter %>% mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
                   arrange(StationID, `Collection Date`, RepNum), 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$SCI_filter),
                                buttons=list('copy','colvis')))  })
@@ -1319,7 +1338,7 @@ shinyServer(function(input, output, session) {
       z <- dplyr::select(z, StationID:`Collection Date`, BenSampID, everything()) %>%
         arrange(StationID, `Collection Date`, RepNum)
       
-      datatable(z, rownames = F, escape= F, extensions = 'Buttons',
+      datatable(z, rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(z), buttons=list('copy','colvis')))  })
     
@@ -1330,7 +1349,7 @@ shinyServer(function(input, output, session) {
       datatable(reactive_objects$benthics_Filter_crosstab %>% 
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
                   arrange(StationID, `Collection Date`, RepNum), 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$benthics_Filter_crosstab),
                                buttons=list('copy','colvis')))  })
@@ -1339,7 +1358,7 @@ shinyServer(function(input, output, session) {
       datatable(reactive_objects$benthics_Filter %>%
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
                   arrange(StationID, `Collection Date`, RepNum), 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$benthics_Filter),
                                buttons=list('copy','colvis')))  })
@@ -1358,7 +1377,7 @@ shinyServer(function(input, output, session) {
         mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
         arrange(StationID, `Collection Date`, RepNum)
       
-      datatable(z, rownames = F, escape= F, extensions = 'Buttons',
+      datatable(z, rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(z),
                                buttons=list('copy','colvis')))  })
@@ -1376,7 +1395,7 @@ shinyServer(function(input, output, session) {
         arrange(StationID, `Collection Date`, RepNum)
       
       
-      datatable(z, rownames = F, escape= F, extensions = 'Buttons',
+      datatable(z, rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(z),
                                buttons=list('copy','colvis')))  })
@@ -1396,7 +1415,7 @@ shinyServer(function(input, output, session) {
       
       datatable(z, 
         #dplyr::select(z, StationID:`Collection Date`) %>% dplyr::select(-c(`Collection Date`)), # crazy way to include unexpected columns
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(z),
                                buttons=list('copy','colvis')))  })
@@ -1408,7 +1427,7 @@ shinyServer(function(input, output, session) {
       z <- benthics_crosstab_Billy(reactive_objects$benthics_Filter, masterTaxaGenus, genusOrFamily = input$genusOrFamily_multistation)
       
       datatable(z, #dplyr::select(z, StationID:`Collection Date`) %>% dplyr::select(-c(`Collection Date`)), # crazy way to include unexpected columns
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(z),
                                buttons=list('copy','colvis')))  })
@@ -1422,7 +1441,7 @@ shinyServer(function(input, output, session) {
         arrange(StationID, `Collection Date`, RepNum) %>%
         left_join(dplyr::select(BCGattVal, FinalID, `Taxonomic Notes`: `BCGatt Comment`), by = 'FinalID')
       
-      datatable(multiBCGtable,  rownames = F, escape= F,  extensions = 'Buttons',
+      datatable(multiBCGtable,  rownames = F, escape= F,  extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '500px',
                                pageLength=nrow(multiBCGtable), buttons=list('copy','colvis'))) %>% 
         formatStyle(names(multiBCGtable)[c(8:21, 23:29)], backgroundColor = styleInterval(bcgAttributeColors $brks, bcgAttributeColors$clrs)) })
@@ -1435,19 +1454,19 @@ shinyServer(function(input, output, session) {
     
     output$averageTotalHabitatMetrics_multistation <-  renderDataTable({
       req(reactive_objects$avgTotalHab_multistation)
-      datatable(reactive_objects$avgTotalHab_multistation, rownames = F, escape= F,  extensions = 'Buttons',
+      datatable(reactive_objects$avgTotalHab_multistation, rownames = F, escape= F,  extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollY = '250px', pageLength = nrow(reactive_objects$avgTotalHab_multistation), buttons=list('copy','colvis'))) })
     
     output$fieldTeamMetrics_multistation <- renderDataTable({
       req(reactive_objects$habSamps_Filter)
       z <- uniqueFieldTeam(reactive_objects$habSamps_Filter)
-      datatable(z, rownames = F, escape= F, extensions = 'Buttons',
+      datatable(z, rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bft', scrollY = '150px', pageLength = nrow(z), buttons=list('copy'))) })
     
     output$habObsMetrics_multistation <- renderDataTable({
       req(reactive_objects$habObs_Filter)
       z <- habObsMetrics(reactive_objects$habObs_Filter) %>% rename('n Observations' = 'Observations') # make formatting match field team to line up tables
-      datatable(z, rownames = F, escape= F, extensions = 'Buttons',
+      datatable(z, rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bft', scrollY = '150px', pageLength = nrow(z), buttons=list('copy'))) })
     
     output$habitatSamplingInformation_multistation <- renderDataTable({
@@ -1456,7 +1475,7 @@ shinyServer(function(input, output, session) {
                   mutate(`Collection Date` = as.Date(`Collection Date`),
                          `Entered Date` = as.Date(`Entered Date`)) %>%
                   arrange(StationID), 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX = TRUE, scrollY = '150px',
                                pageLength = nrow(reactive_objects$habSamps_Filter), buttons=list('copy','colvis'))) })
     
@@ -1468,7 +1487,7 @@ shinyServer(function(input, output, session) {
                   mutate(`Collection Date` = as.Date(`Collection Date`),
                          `Entered Date` = as.Date(`Entered Date`)) %>%
                   arrange(StationID, `Collection Date`),
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$habValues_totHab_multistation), buttons=list('copy','colvis')))  })
     
@@ -1491,7 +1510,7 @@ shinyServer(function(input, output, session) {
       req(habitatValuesCrosstab_multistation())
       datatable(habitatValuesCrosstab_multistation() %>% 
                   mutate(`Collection Date` = as.Date(`Collection Date`)) , 
-                rownames = F, escape= F, extensions = 'Buttons', 
+                rownames = F, escape= F, extensions = 'Buttons',  selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(habitatValuesCrosstab_multistation()), buttons=list('copy','colvis')))  })
     
@@ -1509,7 +1528,7 @@ shinyServer(function(input, output, session) {
       req(habitatObservationsCrossTab_multistation())
       datatable(habitatObservationsCrossTab_multistation() %>% 
                   mutate(`Collection Date` = as.Date(`Collection Date`)) , 
-                rownames = F, escape= F, extensions = 'Buttons', 
+                rownames = F, escape= F, extensions = 'Buttons',  selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(habitatObservationsCrossTab_multistation()), buttons=list('copy','colvis')))  })
     
@@ -1524,7 +1543,7 @@ shinyServer(function(input, output, session) {
                   dplyr::select(StationID, HabSampID, `Collection Date`, everything()) %>%
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
                   arrange(StationID, `Collection Date`), 
-                rownames = F, escape= F, extensions = 'Buttons', 
+                rownames = F, escape= F, extensions = 'Buttons',  selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$habValues_Filter), buttons=list('copy','colvis')))  })
     
@@ -1536,7 +1555,7 @@ shinyServer(function(input, output, session) {
                   dplyr::select(StationID, HabSampID, `Collection Date`, everything()) %>%
                   mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
                   arrange(StationID, `Collection Date`), 
-                rownames = F, escape= F, extensions = 'Buttons',
+                rownames = F, escape= F, extensions = 'Buttons', selection = 'none',
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(reactive_objects$habObs_Filter), buttons=list('copy','colvis') )) })
     

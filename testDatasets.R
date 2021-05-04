@@ -498,6 +498,79 @@ plot_ly(SCIresults %>% filter(grepl( 'R110', BenSampID)),
 
 
 
+# Stacked area plot for FFG
+FFGdata <- left_join(stationBenthicsDateRange, 
+                     dplyr::select(masterTaxaGenus, FinalID,`Final VA Family ID`:FamHabit), 
+                     by = 'FinalID') %>% 
+  dplyr::select(-c(Taxonomist:`Entered Date`)) %>% 
+  {if(plotType == 'Genus')
+    group_by(., StationID, `Collection Date`, RepNum, BenSampID, FFG) %>% 
+      summarise(Count = sum(Individuals, na.rm = T)) %>% 
+      mutate(TotalCount = sum(Count),
+             Percent = Count / TotalCount * 100) 
+    else group_by(., StationID, `Collection Date`, RepNum, BenSampID, FamFFG) %>% 
+      summarise(Count = sum(Individuals, na.rm = T)) %>% 
+      mutate(TotalCount = sum(Count),
+             Percent = Count / TotalCount * 100,
+             tot = sum(Percent)) }  %>% 
+  filter(BenSampID %in% c( "FAMROA3547",   "FAMROA4376",   "FAMROA6182",   "FAMROA6327",   "ROA8514R110",  "ROA8184R110" , "ROA5936R110" )) 
+  
+
+plotType <- 'Family'
+xAxis <- 'BenSampID' #"Date (removes Rep 2 samples by default)"
+FFGstackedBarPlotFunction <- function(FFGdata, plotType, xAxis){
+  if(plotType == 'Genus'){
+    if(xAxis == 'BenSampID'){
+      ggplot(FFGdata, aes(x=BenSampID, y=Percent)) +
+        geom_area(aes(colour = FFG, group = FFG, fill = FFG)) +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = -90))
+    } else {
+      filter(FFGdata, RepNum == 1) %>% 
+        ggplot(aes(x=`Collection Date`, y=Percent)) +
+        geom_area(aes(colour = FFG, group = FFG, fill = FFG)) +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = -90))    }
+  } else {
+    if(xAxis == 'BenSampID'){
+      ggplot(FFGdata, aes(x=BenSampID, y=Percent)) +
+        geom_area(aes(colour = FamFFG, group = FamFFG, fill = FamFFG))  +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = -90))
+    } else {
+      filter(FFGdata, RepNum == 1) %>% 
+        ggplot(aes(x=`Collection Date`, y=Percent)) +
+        geom_area(aes(colour = FamFFG, group = FamFFG, fill = FamFFG)) +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = -90))   }
+      
+  }
+}
+  
+FFGstackedBarPlotFunction(FFGdata, 'Family', 'BenSampID')#"Date (removes Rep 2 samples by default)")
+  
+  
+    {if(plotType == 'Genus')
+       %>% 
+        ggplot(aes(x=`Collection Date`, y=Percent)) +
+        geom_area(aes(colour = FFG, group = FFG, fill = FFG)) +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = -90))
+      else group_by(., StationID, `Collection Date`, RepNum, BenSampID, FamFFG) %>% 
+        summarise(Count = sum(Individuals, na.rm = T)) %>% 
+        mutate(TotalCount = sum(Count),
+               Percent = Count / TotalCount * 100,
+               tot = sum(Percent)) %>% 
+        ggplot(aes(x=BenSampID, y=Percent)) +
+        geom_area(aes(colour = FamFFG, group = FamFFG, fill = FamFFG))  +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = -90)) } 
+    
+  
+}
+
+FFGstackedBarPlotFunction(FFGdata, masterTaxaGenus, "Genus")
+
 ## habitat data
 
 

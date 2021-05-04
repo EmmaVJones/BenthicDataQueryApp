@@ -62,23 +62,41 @@ shinyUI(fluidPage(theme= "yeti.css",
                                                               DT::dataTableOutput('SCIresultsTable'),
                                                               br(), br(), br()), # a little breathing room
                                                      tabPanel('Benthic Visualization Tools',
-                                                              helpText('This tab combines various analysis tools from regional biologists to share data visualization
+                                                              helpText('This tab combines various analysis tools from DEQ staff to share data visualization
                                                                        techniques. Tools can be added to this section by contacting Emma Jones (emma.jones@deq.virginia.gov).'),
                                                               br(),
-                                                              #h4('SCI Seasonal Crosstab'),
-                                                              #uiOutput('metric_UI'),
-                                                              #DT::dataTableOutput('SCIseasonalCrosstab'),
-                                                              h4('Benthic Individuals BenSamp Crosstab'),
-                                                              radioButtons('genusOrFamily', "Analyze by Genus or Family", choices = c('Genus', 'Family')),
-                                                              DT::dataTableOutput('benthicIndividualsBensampCrosstab'), br(),
-                                                              h4('BCG Attribute Information'),
-                                                              helpText('The table below joins the taxa collected at the selected station and collection window
+                                                              tabsetPanel(
+                                                                tabPanel('Benthic Individuals BenSamp Crosstab',
+                                                                         radioButtons('genusOrFamily', "Analyze by Genus or Family", choices = c('Genus', 'Family')),
+                                                                         DT::dataTableOutput('benthicIndividualsBensampCrosstab'), br(), br(), br()),# a little breathing room
+                                                                tabPanel('BCG Attribute Information',
+                                                                         helpText('The table below joins the taxa collected at the selected station and collection window
                                                                        with various BCG attribute levels from different regional BCG projects. For more information 
                                                                        on the BCG process', 
-                                                                       span(strong(a('click here.', href='https://www.deq.virginia.gov/home/showpublisheddocument?id=4303',
-                                                                                     target='_blank')))), 
-                                                              DT::dataTableOutput('BCGattributes'),
-                                                              br(), br(), br()),# a little breathing room
+                                                                                  span(strong(a('click here.', href='https://www.deq.virginia.gov/home/showpublisheddocument?id=4303',
+                                                                                                target='_blank')))), 
+                                                                         DT::dataTableOutput('BCGattributes'),br(), br(), br()),# a little breathing room
+                                                                tabPanel('FFG Stacked Bar Chart',
+                                                                         helpText('Radiobuttons control what taxonomic level the Functional Feeding Group (FFG) stacked bar chart
+                                                                                  plot describes. Note missing FFG designations in the master taxa list can result in missing
+                                                                                  data from plot. The table below reflects data in the plot and can be downloaded for further
+                                                                                  analysis.'),
+                                                                         radioButtons('FFGgenusOrFamily', "Analyze by Genus or Family", choices = c('Genus', 'Family')),
+                                                                         plotOutput('FFGplot'), br(), 
+                                                                         DT::dataTableOutput('FFGdataTable'),br(), br(), br()) )# a little breathing room
+                                                              ),
+                                                              # 
+                                                              # h4('Benthic Individuals BenSamp Crosstab'),
+                                                              # radioButtons('genusOrFamily', "Analyze by Genus or Family", choices = c('Genus', 'Family')),
+                                                              # DT::dataTableOutput('benthicIndividualsBensampCrosstab'), br(),
+                                                              # h4('BCG Attribute Information'),
+                                                              # helpText('The table below joins the taxa collected at the selected station and collection window
+                                                              #          with various BCG attribute levels from different regional BCG projects. For more information 
+                                                              #          on the BCG process', 
+                                                              #          span(strong(a('click here.', href='https://www.deq.virginia.gov/home/showpublisheddocument?id=4303',
+                                                              #                        target='_blank')))), 
+                                                              # DT::dataTableOutput('BCGattributes'),
+                                                              
                                                      tabPanel('Raw Data Download Formats',
                                                               tabsetPanel(
                                                                 tabPanel('Raw Genus Level Data Crosstab View',
