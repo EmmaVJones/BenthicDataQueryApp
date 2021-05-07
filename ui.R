@@ -1,4 +1,7 @@
-shinyUI(fluidPage(theme= "yeti.css",
+shinyUI(fluidPage(tags$head(
+  tags$style(
+    HTML(".shiny-notification {position:fixed; top: calc(60%); left: calc(10%); }"))),
+  theme= "yeti.css",
                   navbarPage("CEDS Benthic Data Query Tool", id = 'someID',  # key for passing URL to specific Tab
                              
                              tabPanel('How To',
@@ -186,6 +189,7 @@ shinyUI(fluidPage(theme= "yeti.css",
                                                      uiOutput('spatialFilters_VAHU6'),
                                                      hr(),
                                                      uiOutput('spatialFilters_Ecoregion'),
+                                                     uiOutput('spatialFilters_County'),
                                                      uiOutput('dateRange_multistationUI'),
                                                      br(),
                                                      actionButton('begin_multistation_spatial', 'Pull Stations',class='btn-block')),

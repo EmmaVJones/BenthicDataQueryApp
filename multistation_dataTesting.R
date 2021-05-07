@@ -11,6 +11,7 @@
 
 assessmentRegions <- st_read( 'data/GIS/AssessmentRegions_simple.shp')
 ecoregion <- st_read('data/GIS/vaECOREGIONlevel3__proj84.shp')
+county <- st_read('data/GIS/VACountyBoundaries.shp')
 assessmentLayer <- st_read('data/GIS/AssessmentRegions_VA84_basins.shp') %>%
   st_transform( st_crs(4326)) 
 subbasins <- st_read('data/GIS/DEQ_VAHUSB_subbasins_EVJ.shp') %>%
@@ -36,8 +37,8 @@ WQM_Stations_Filter <- filter(benSampsStations, StationID %in% as.character(manu
 
 # Spatial filters troubleshooting
 ### begin
-assessmentRegionFilter <- c("PRO")#NULL#c("PRO")#unique(subbasins$ASSESS_REG)
-subbasinFilter <- c("James River - Middle",'Potomac River')#NULL# c("James River - Middle",'Potomac River')#NULL#"James River - Lower"
+assessmentRegionFilter <- c("BRRO")#NULL#c("PRO")#unique(subbasins$ASSESS_REG)
+subbasinFilter <- c("New")#"James River - Middle",'Potomac River')#NULL# c("James River - Middle",'Potomac River')#NULL#"James River - Lower"
 #filter(subbasins, ASSESS_REG %in% assessmentRegionFilter) %>%
 #  distinct(SUBBASIN) %>% st_drop_geometry() %>%  pull()
 VAHU6Filter <- NULL#'JU11'#NULL 
@@ -46,22 +47,31 @@ VAHU6Filter <- NULL#'JU11'#NULL
 #  left_join(st_drop_geometry(assessmentLayer), by=c('SubbasinVAHU6code'='VAHUSB') ) %>%
 #  distinct(VAHU6) %>% pull()
 ecoregionFilter <- NULL#"Blue Ridge"#unique(ecoregion$US_L3NAME)
+countyFilter <- "Amelia"#NULL
 dateRange_multistation <- c(as.Date('2000-01-01'), as.Date(Sys.Date()- 7))
 
 WQM_Stations_Filter <- benSampsStations %>%
+  left_join(WQM_Stations_Spatial, by = 'StationID') %>% 
   # go small to large spatial filters
   {if(!is.null(VAHU6Filter))
-    st_intersection(., filter(assessmentLayer, VAHU6 %in% VAHU6Filter))
-    else .} %>%
+    filter(., VAHU6 %in% VAHU6Filter)
+    #st_intersection(., filter(assessmentLayer, VAHU6 %in% VAHU6Filter))
+    else . } %>%
   {if(is.null(VAHU6Filter) & !is.null(subbasinFilter))
-    st_intersection(., filter(subbasins, SUBBASIN %in% subbasinFilter))
-    else .} %>%
+    #filter(., Basin_Code %in% subbasinFilter)
+    st_intersection(., filter(subbasins, SUBBASIN %in% subbasinFilter)) # keeping with spatial filter here bc the subbasin filter options would have to change otherwise
+    else . } %>%
   {if(is.null(VAHU6Filter) & !is.null(assessmentRegionFilter)) # don't need assessment region filter if VAHU6 available
-    st_intersection(., filter(assessmentRegions, ASSESS_REG %in% assessmentRegionFilter))
+    filter(., ASSESS_REG %in% assessmentRegionFilter)
+    #st_intersection(., filter(assessmentRegions, ASSESS_REG %in% assessmentRegionFilter))
     else .} %>%
   {if(!is.null(ecoregionFilter))
-    st_intersection(., filter(ecoregion, US_L3NAME %in% ecoregionFilter))
+    filter(., US_L3NAME %in% ecoregionFilter)
+    #st_intersection(., filter(ecoregion, US_L3NAME %in% ecoregionFilter))
     else .} %>%
+  {if(!is.null(countyFilter))
+    filter(., CountyCityName %in% countyFilter)
+    else .} %>% 
   {if(!is.null(dateRange_multistation))
     filter(., StationID %in% filter(benSamps, `Collection Date` >= dateRange_multistation[1] & `Collection Date` <= dateRange_multistation[2])$StationID)
     else .} %>%

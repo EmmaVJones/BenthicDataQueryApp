@@ -3,6 +3,7 @@ httr::set_config(httr::config(ssl_verifypeer = FALSE, ssl_verifyhost = FALSE))
 library(tidyverse)
 library(sf)
 library(shiny)
+library(shinybusy)
 library(leaflet)
 library(leaflet.extras)
 library(inlmisc)
@@ -80,7 +81,7 @@ onStop(function() {
 
 # Retrieve Pins
 WQM_Station_Full <- pin_get("ejones/WQM-Station-Full", board = "rsconnect")
-
+WQM_Stations_Spatial <- pin_get("ejones/WQM-Stations-Spatial", board = "rsconnect")
 Wqm_Stations_View <- pin_get("ejones/WQM-Stations-View", board = "rsconnect")
 
 VSCIresults <- pin_get("ejones/VSCIresults", board = "rsconnect")

@@ -2,8 +2,9 @@ source('global.R')
 
 assessmentRegions <- st_read( 'data/GIS/AssessmentRegions_simple.shp')
 ecoregion <- st_read('data/GIS/vaECOREGIONlevel3__proj84.shp')
+county <- st_read('data/GIS/VACountyBoundaries.shp')
 assessmentLayer <- st_read('data/GIS/AssessmentRegions_VA84_basins.shp') %>%
-  st_transform( st_crs(4326)) 
+  st_transform( st_crs(4326))
 subbasins <- st_read('data/GIS/DEQ_VAHUSB_subbasins_EVJ.shp') %>%
   rename('SUBBASIN' = 'SUBBASIN_1') %>%
   mutate(SUBBASIN = ifelse(is.na(SUBBASIN), as.character(BASIN_NAME), as.character(SUBBASIN)))
@@ -117,7 +118,7 @@ shinyServer(function(input, output, session) {
   ## Pull Station Information 
   observeEvent(nrow(reactive_objects$stationInfo) > 0, {
     
-    show_modal_spinner(spin = 'flower')
+   # show_modal_spinner(spin = 'flower')
     
     ## update Station Information after ensuring station valid
     reactive_objects$stationInfoFin <- left_join(pool %>% tbl("Wqm_Stations_View") %>%  # need to repull data instead of calling stationInfo bc app crashes
@@ -252,7 +253,8 @@ shinyServer(function(input, output, session) {
         #  pivot_longer(-`Final VA Family ID`, names_to = 'metric', values_to = 'metric_val') %>%
         filter(!is.na(metric_val))  
       
-      remove_modal_spinner()      })
+     # remove_modal_spinner()   
+      })
     
     # Habitat pull after initial hab samps data available
     observe({
@@ -297,7 +299,7 @@ shinyServer(function(input, output, session) {
     
     ## Map Station Information
     output$stationMap <- renderLeaflet({
-      req(reactive_objects$stationInfo)
+      #req(reactive_objects$stationInfo)
       # color palette for assessment polygons
       pal <- colorFactor(
         palette = topo.colors(7),
@@ -910,6 +912,9 @@ shinyServer(function(input, output, session) {
       list(helpText("Additional filter(s) applied on 'Pull Stations' request. "),
            selectInput('ecoregionFilter','Level 3 Ecoregion', choices = unique(ecoregion$US_L3NAME), multiple = T)) })
     
+    output$spatialFilters_County <- renderUI({req(input$queryType == 'Spatial Filters')
+      selectInput('countyFilter','County/City', choices = sort(unique(county$NAME)), multiple = T) })
+    
     output$dateRange_multistationUI <- renderUI({
       req(input$queryType == 'Spatial Filters')
       dateRangeInput('dateRange_multistation',
@@ -926,6 +931,8 @@ shinyServer(function(input, output, session) {
     
     observeEvent(input$begin_multistation_wildcard,{
       #     if(!is.null(input$wildcardText)){# != ""){
+      show_modal_spinner(spin = 'flower')
+      
       reactive_objects$wildcardResults <- sqldf(paste0('SELECT * FROM benSamps WHERE StationID like "',
                                                        input$wildcardText, '"')) # need to use benSamps bc sqldf doesn't like sf objects
       if(nrow(reactive_objects$wildcardResults) > 0 ){
@@ -933,7 +940,9 @@ shinyServer(function(input, output, session) {
       } else {
         # if(input$wildcardText != "" & is.null(input$VAHU6Filter) & is.null(input$subbasinFilter) & 
         #      is.null(input$assessmentRegionFilter) & is.null(input$ecoregionFilter)){
-        showNotification("No stations found with entered text.")        } })
+        showNotification("No stations found with entered text.")        }
+      remove_modal_spinner()    
+      })
     #    }
     #    else {reactive_objects$wildcardResults <- NULL 
     #    showNotification("No stations found with entered text.")}
@@ -947,25 +956,45 @@ shinyServer(function(input, output, session) {
     
     # Query by spatial filter selection
     observeEvent(input$begin_multistation_spatial,{
-      reactive_objects$WQM_Stations_Filter <- benSampsStations %>%
+      show_modal_spinner(spin = 'flower')
+      
+      reactive_objects$spatialFilter <- benSampsStations %>%
+        left_join(WQM_Stations_Spatial, by = 'StationID') %>% 
         # go small to large spatial filters
         {if(!is.null(input$VAHU6Filter))
-          st_intersection(., filter(assessmentLayer, VAHU6 %in% input$VAHU6Filter))
+          filter(., VAHU6 %in% input$VAHU6Filter)
+          #st_intersection(., filter(assessmentLayer, VAHU6 %in% VAHU6Filter))
           else .} %>%
         {if(is.null(input$VAHU6Filter) & !is.null(input$subbasinFilter))
+          #filter(., Basin_Code %in% subbasinFilter)
+          # keeping with spatial filter here bc the subbasin filter options would have to change otherwise
           st_intersection(., filter(subbasins, SUBBASIN %in% input$subbasinFilter))
           else .} %>%
         {if(is.null(input$VAHU6Filter) & !is.null(input$assessmentRegionFilter)) # don't need assessment region filter if VAHU6 available
-          st_intersection(., filter(assessmentRegions, ASSESS_REG %in% input$assessmentRegionFilter))
+          filter(., ASSESS_REG %in% input$assessmentRegionFilter)
+          #st_intersection(., filter(assessmentRegions, ASSESS_REG %in% assessmentRegionFilter))
           else .} %>%
         {if(!is.null(input$ecoregionFilter))
-          st_intersection(., filter(ecoregion, US_L3NAME %in% input$ecoregionFilter))
+          filter(., US_L3NAME %in% input$ecoregionFilter)
+          #st_intersection(., filter(ecoregion, US_L3NAME %in% ecoregionFilter))
           else .}  %>%
+        {if(!is.null(countyFilter))
+          filter(., CountyCityName %in% input$countyFilter)
+          else .} %>% 
         {if(!is.null(input$dateRange_multistation))
           filter(., StationID %in% filter(benSamps, as.Date(`Collection Date`) >= input$dateRange_multistation[1] & as.Date(`Collection Date`) <= input$dateRange_multistation[2])$StationID)
           else .} %>%
         rename(., `Total Station Visits (Not Sample Reps)` = "Total.Station.Visits..Not.Sample.Reps.") %>%
-        dplyr::select(StationID, `Total Station Visits (Not Sample Reps)`) })
+        dplyr::select(StationID, `Total Station Visits (Not Sample Reps)`) 
+      remove_modal_spinner()   
+      
+      if(nrow(reactive_objects$spatialFilter) > 0 ){
+        reactive_objects$WQM_Stations_Filter <- reactive_objects$spatialFilter
+      } else {
+        # if(input$wildcardText != "" & is.null(input$VAHU6Filter) & is.null(input$subbasinFilter) & 
+        #      is.null(input$assessmentRegionFilter) & is.null(input$ecoregionFilter)){
+        showNotification("No stations found with entered text.")  }
+      })
     
     
     
@@ -974,24 +1003,20 @@ shinyServer(function(input, output, session) {
     # Query by manual selection
     output$manualSelection <- renderUI({req(input$queryType == 'Manually Specify Stations')
       list(helpText('Begin typing station names and the app will filter available data by input text. Multiple stations are allowed.'),
-           selectInput('manualSelection','Station ID', choices = unique(benSampsStations$StationID), multiple = T)) })
+           selectInput('manualSelection','Station ID', choices = sort(unique(benSampsStations$StationID)), multiple = T)) })
     
     observeEvent(input$begin_multistation_manual, {
-      reactive_objects$WQM_Stations_Filter <- filter(benSampsStations, StationID %in% as.character(input$manualSelection))    })
+      show_modal_spinner(spin = 'flower')
+      reactive_objects$WQM_Stations_Filter <- filter(benSampsStations, StationID %in% as.character(input$manualSelection))   
+      remove_modal_spinner() 
+      })
     
       
+
+    
+    
+    observe({ req(reactive_objects$WQM_Stations_Filter)
       
-      
-      
-    output$test <- renderPrint({
-      reactive_objects$WQM_Stations_Filter
-    })
-    
-    
-    
-    
-    observe({
-      req(reactive_objects$WQM_Stations_Filter)
       ## Basic Station Info
       reactive_objects$multistationInfoFin <- left_join(Wqm_Stations_View %>%  # need to repull data instead of calling stationInfo bc app crashes
                                                           filter(Sta_Id %in% reactive_objects$WQM_Stations_Filter$StationID) %>%
@@ -1022,7 +1047,7 @@ shinyServer(function(input, output, session) {
     
     
     output$multistationMap <- renderLeaflet({
-      req(reactive_objects$WQM_Stations_Filter)
+      #req(reactive_objects$WQM_Stations_Filter)
       # color palette for assessment polygons
       pal <- colorFactor(
         palette = topo.colors(7),
