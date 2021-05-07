@@ -232,6 +232,7 @@ Create a BenSampsStations dataset with ecoregion and assessment region informati
 ```{r ecoregion assessment}
 #Bring in extra large ecoregion and assessment region files. By extra large we mean that they are continuous outside the state boundary such that stations that fall outside the state are not removed when spatially intersected
 ecoregionLarge <- st_read('data/GIS/VA_level3ecoregion_WGS84.shp')
+county <- st_read('data/GIS/VACountyBoundaries.shp')
 #assessmentRegionLarge <- st_read('data/GIS/AssessmentRegions_buffer.shp')
 ```
 
@@ -243,11 +244,11 @@ subbasinConversion <- read_csv('data/subbasinToVAHU6conversion.csv')
 unrestrictedAssessmentRegionVAHU6Subbasin <- left_join(vahu6, subbasinConversion, by = c('VAHU6', 'VAHU5'))
 ```
 
-Make a WQM_Stations_Spatial dataset that has spatially derived ecoregion, subbasin, and assessment info.
+Make a WQM_Stations_Spatial dataset that has spatially derived ecoregion, county, subbasin, and assessment info.
 
 ```{r WQM_Stations_Spatial}
 # bring in what already has data
-WQM_Stations_Spatial_pin <- pin_get('ejones/WQM-Stations-Spatial')
+WQM_Stations_Spatial_pin <- pin_get('ejones/WQM-Stations-Spatial') 
 
 # identify any new sites that have been added to CEDS since the last analysis
 WQM_Stations_Spatial1 <- filter(WQM_Sta_GIS_View, ! Station_Id %in% WQM_Stations_Spatial_pin$StationID) %>%
@@ -266,6 +267,11 @@ WQM_Stations_SpatialEco <- #filter(WQM_Stations_Spatial1, is.na(US_L3CODE)) %>%
 #  mutate(US_L3CODE = as.character(`US_L3CODE.1`), US_L3NAME = as.character(`US_L3NAME.1`)) %>%
 #  dplyr::select(-c(US_L3CODE.1, US_L3NAME.1)) %>% st_drop_geometry()
 
+# CountyCity Name info
+WQM_Stations_SpatialCounty <- #filter(WQM_Stations_Spatial1, is.na(US_L3CODE)) %>%
+  st_intersection(WQM_Stations_Spatial1, dplyr::select(county, CountyCityName = NAME, FIPS)) %>%st_drop_geometry()
+
+
 # Add Assessment and Basin Info
 WQM_Stations_SpatialAssess <- #filter(WQM_Stations_Spatial1, is.na(ASSESS_REG)) %>%
   st_intersection(WQM_Stations_Spatial1, unrestrictedAssessmentRegionVAHU6Subbasin) %>% #assessmentRegionLarge) %>%
@@ -275,7 +281,9 @@ WQM_Stations_SpatialAssess <- #filter(WQM_Stations_Spatial1, is.na(ASSESS_REG)) 
 
 WQM_Stations_Spatial2 <- full_join(dplyr::select(WQM_Stations_SpatialEco, StationID:US_L3NAME),
                                         dplyr::select(WQM_Stations_SpatialAssess, StationID, VAHU6, ASSESS_REG:Basin_Code ),
-                                        by='StationID')
+                                        by='StationID') %>% 
+  full_join(dplyr::select(WQM_Stations_SpatialCounty, StationID, CountyCityName, FIPS),
+            by = 'StationID')
 
 # Fix any sites that are missing lat/lng after combining eco and assessment info (missing coords from assessment step)
 WQM_Stations_Spatial2fix <- filter(WQM_Stations_Spatial2, is.na(Latitude) | is.na(Longitude)) %>% 

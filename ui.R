@@ -1,11 +1,11 @@
 shinyUI(fluidPage(theme= "yeti.css",
-                  navbarPage("CEDS Benthic Data Query Tool",
+                  navbarPage("CEDS Benthic Data Query Tool", id = 'someID',  # key for passing URL to specific Tab
                              
                              tabPanel('How To',
                                       includeMarkdown("BenthicQueryToolHowToNew.md")),
                                       #includeHTML("BenthicQueryToolHowTo.html")),#htmlOutput("BenthicQueryToolHowTo") ), # this was a hot mess. when trying to update the BenthicQueryHowTo rmd and rendering to html, the app would not take any user inputs. so weird and wasted hours on this problem. ultimately had to go with rendering the .md in the app to have any semblance of a solution
                              
-                             tabPanel("Single Station Query (Live CEDS Connection)",
+                             tabPanel("Single Station Query (Live CEDS Connection)", value = 'SingleStation', # key for passing URL to specific Tab
                                       tabsetPanel(
                                         tabPanel("Station Data",
                                                  sidebarPanel(
@@ -81,7 +81,8 @@ shinyUI(fluidPage(theme= "yeti.css",
                                                                                   plot describes. Note missing FFG designations in the master taxa list can result in missing
                                                                                   data from plot. The table below reflects data in the plot and can be downloaded for further
                                                                                   analysis.'),
-                                                                         radioButtons('FFGgenusOrFamily', "Analyze by Genus or Family", choices = c('Genus', 'Family')),
+                                                                         fluidRow(column(6, radioButtons('FFGgenusOrFamily', strong("Analyze by Genus or Family"), choices = c('Genus', 'Family'))),
+                                                                                  column(6, radioButtons('FFGxAxis', strong("Plot x axis as:"), choices = c('BenSampID', 'Date (removes Rep 2 samples by default)')))),
                                                                          plotOutput('FFGplot'), br(), 
                                                                          DT::dataTableOutput('FFGdataTable'),br(), br(), br()) )# a little breathing room
                                                               ),

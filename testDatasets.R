@@ -511,8 +511,7 @@ FFGdata <- left_join(stationBenthicsDateRange,
     else group_by(., StationID, `Collection Date`, RepNum, BenSampID, FamFFG) %>% 
       summarise(Count = sum(Individuals, na.rm = T)) %>% 
       mutate(TotalCount = sum(Count),
-             Percent = Count / TotalCount * 100,
-             tot = sum(Percent)) }  %>% 
+             Percent = Count / TotalCount * 100) }  %>% 
   filter(BenSampID %in% c( "FAMROA3547",   "FAMROA4376",   "FAMROA6182",   "FAMROA6327",   "ROA8514R110",  "ROA8184R110" , "ROA5936R110" )) 
   
 

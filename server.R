@@ -24,6 +24,18 @@ shinyServer(function(input, output, session) {
   
   ###----------------------------------------Single Station Query ---------------------------------------------------------------------------------------------------
   
+  
+  ## Pass URL to app to autofill input$station from other DEQ applications
+  observe({
+    # this was crucial to figuring load on certain tab: https://stackoverflow.com/questions/33021757/externally-link-to-specific-tabpanel-in-shiny-app
+    query <- parseQueryString(session$clientData$url_search)
+    if (!is.null(query[['StationID']])) {
+      updateTabsetPanel(session,  inputId = "someID", 'SingleStation')  # key for passing URL to specific Tab
+      updateTextInput(session, "station", value = query[['StationID']])
+    }
+  })
+  
+  
   # Master Taxa Data
   observe({
     reactive_objects$masterTaxaGenus <- pool %>% tbl("Edas_Benthic_Master_Taxa_View") %>%
@@ -104,6 +116,9 @@ shinyServer(function(input, output, session) {
 
   ## Pull Station Information 
   observeEvent(nrow(reactive_objects$stationInfo) > 0, {
+    
+    show_modal_spinner(spin = 'flower')
+    
     ## update Station Information after ensuring station valid
     reactive_objects$stationInfoFin <- left_join(pool %>% tbl("Wqm_Stations_View") %>%  # need to repull data instead of calling stationInfo bc app crashes
                                                    filter(Sta_Id %in% !! toupper(input$station)) %>%
@@ -235,7 +250,9 @@ shinyServer(function(input, output, session) {
         filter(!is.na(`Final VA Family ID`)) %>%
         pivot_longer(-`Final VA Family ID`, names_to = 'metric', values_to = 'metric_val') %>%
         #  pivot_longer(-`Final VA Family ID`, names_to = 'metric', values_to = 'metric_val') %>%
-        filter(!is.na(metric_val))  })
+        filter(!is.na(metric_val))  
+      
+      remove_modal_spinner()      })
     
     # Habitat pull after initial hab samps data available
     observe({
@@ -533,14 +550,23 @@ shinyServer(function(input, output, session) {
     
     
     ## FFG Data and Plot
-    FFGdata <- reactive({req(stationBenthicsDateRange())
+    FFGdata <- reactive({req(stationBenthicsDateRange(), input$FFGgenusOrFamily)
       left_join(stationBenthicsDateRange(), 
                 dplyr::select(reactive_objects$masterTaxaGenus, FinalID,`Final VA Family ID`:FamHabit), 
                          by = 'FinalID') %>% 
-        dplyr::select(-c(Taxonomist:`Entered Date`))})
+        dplyr::select(-c(Taxonomist:`Entered Date`)) %>% 
+        {if(input$FFGgenusOrFamily == 'Genus')
+          group_by(., StationID, `Collection Date`, RepNum, BenSampID, FFG) %>% 
+            summarise(Count = sum(Individuals, na.rm = T)) %>% 
+            mutate(TotalCount = sum(Count),
+                   Percent = Count / TotalCount * 100) 
+          else group_by(., StationID, `Collection Date`, RepNum, BenSampID, FamFFG) %>% 
+            summarise(Count = sum(Individuals, na.rm = T)) %>% 
+            mutate(TotalCount = sum(Count),
+                   Percent = Count / TotalCount * 100) } })
     
     output$FFGplot <- renderPlot({req(FFGdata(), input$FFGgenusOrFamily)
-      FFGstackedBarPlotFunction(FFGdata(), reactive_objects$masterTaxaGenus, input$FFGgenusOrFamily)})
+      FFGstackedBarPlotFunction(FFGdata(), input$FFGgenusOrFamily, input$FFGxAxis)})
     
     output$FFGdataTable <-  DT::renderDataTable({ req(FFGdata())
       datatable(FFGdata(),  rownames = F, escape= F,  extensions = 'Buttons', selection = 'none',
