@@ -116,9 +116,7 @@ shinyServer(function(input, output, session) {
      
 
   ## Pull Station Information 
-  observeEvent(nrow(reactive_objects$stationInfo) > 0, {
-    
-   # show_modal_spinner(spin = 'flower')
+  observeEvent(input$begin && nrow(reactive_objects$stationInfo) > 0, {
     
     ## update Station Information after ensuring station valid
     reactive_objects$stationInfoFin <- left_join(pool %>% tbl("Wqm_Stations_View") %>%  # need to repull data instead of calling stationInfo bc app crashes
@@ -145,6 +143,8 @@ shinyServer(function(input, output, session) {
     
     ## Station Geospatial Information
       reactive_objects$stationInfo_sf <- WQM_Station_Full_REST()#filter(WQM_STATIONS_FINAL, STATION_ID %in% toupper(input$station) )
+      
+      show_modal_spinner(spin = 'flower')
       
       ## Station Sampling Information
       reactive_objects$stationInfoSampleMetrics <- reactive_objects$stationInfo_sf %>%
@@ -253,7 +253,7 @@ shinyServer(function(input, output, session) {
         #  pivot_longer(-`Final VA Family ID`, names_to = 'metric', values_to = 'metric_val') %>%
         filter(!is.na(metric_val))  
       
-     # remove_modal_spinner()   
+     remove_modal_spinner()   
       })
     
     # Habitat pull after initial hab samps data available
@@ -331,7 +331,7 @@ shinyServer(function(input, output, session) {
     #observeEvent(nrow(reactive_objects$stationInfo) > 0, {
     observe({
       req(nrow(reactive_objects$stationInfo) > 0)
-      map_proxy %>%
+      map_proxy %>% clearMarkers() %>% 
         addCircleMarkers(data = reactive_objects$stationInfo_sf,
                          color='blue', fillColor='yellow', radius = 6,
                          fillOpacity = 0.5,opacity=0.8,weight = 4,stroke=T, group="Selected Station(s)",
@@ -882,14 +882,14 @@ shinyServer(function(input, output, session) {
     # Query by spatial filters
     output$spatialFilters_assessmentRegion <- renderUI({req(input$queryType == 'Spatial Filters')
       list(helpText('Interactive cross validation between filters applies in this section.'),
-           selectInput('assessmentRegionFilter','Assessment Region', choices = unique(subbasins$ASSESS_REG), multiple = T)) })
+           selectInput('assessmentRegionFilter','Assessment Region', choices = sort(unique(subbasins$ASSESS_REG)), multiple = T)) })
     
     output$spatialFilters_subbasin <- renderUI({req(input$queryType == 'Spatial Filters')
-      choices <- if(is.null(input$assessmentRegionFilter)){unique(subbasins$SUBBASIN)
+      choices <- if(is.null(input$assessmentRegionFilter)){sort(unique(subbasins$SUBBASIN))
       }else{
         filter(subbasins, ASSESS_REG %in% input$assessmentRegionFilter) %>%
           distinct(SUBBASIN) %>% st_drop_geometry() %>%  pull()  }
-      selectInput('subbasinFilter','Basin', choices = choices, multiple = T) })
+      selectInput('subbasinFilter','Basin', choices = sort(choices), multiple = T) })
     
     output$spatialFilters_VAHU6 <- renderUI({  req(input$queryType == 'Spatial Filters')
       if(is.null(input$assessmentRegionFilter) & is.null(input$subbasinFilter)){choices <- unique(assessmentLayer$VAHU6)}
@@ -906,7 +906,7 @@ shinyServer(function(input, output, session) {
           left_join(subbasinVAHU6crosswalk, by='SUBBASIN') %>%
           left_join(st_drop_geometry(assessmentLayer), by=c('SubbasinVAHU6code'='VAHUSB') ) %>%
           distinct(VAHU6) %>% pull() }
-      selectInput('VAHU6Filter','VAHU6', choices = choices, multiple = T) })
+      selectInput('VAHU6Filter','VAHU6', choices = sort(choices), multiple = T) })
     
     output$spatialFilters_Ecoregion <- renderUI({req(input$queryType == 'Spatial Filters')
       list(helpText("Additional filter(s) applied on 'Pull Stations' request. "),
@@ -978,18 +978,18 @@ shinyServer(function(input, output, session) {
           filter(., US_L3NAME %in% input$ecoregionFilter)
           #st_intersection(., filter(ecoregion, US_L3NAME %in% ecoregionFilter))
           else .}  %>%
-        {if(!is.null(countyFilter))
+        {if(!is.null(input$countyFilter))
           filter(., CountyCityName %in% input$countyFilter)
           else .} %>% 
         {if(!is.null(input$dateRange_multistation))
           filter(., StationID %in% filter(benSamps, as.Date(`Collection Date`) >= input$dateRange_multistation[1] & as.Date(`Collection Date`) <= input$dateRange_multistation[2])$StationID)
-          else .} %>%
-        rename(., `Total Station Visits (Not Sample Reps)` = "Total.Station.Visits..Not.Sample.Reps.") %>%
-        dplyr::select(StationID, `Total Station Visits (Not Sample Reps)`) 
+          else .} 
       remove_modal_spinner()   
       
       if(nrow(reactive_objects$spatialFilter) > 0 ){
-        reactive_objects$WQM_Stations_Filter <- reactive_objects$spatialFilter
+        reactive_objects$WQM_Stations_Filter <- reactive_objects$spatialFilter %>%
+          #rename(., `Total Station Visits (Not Sample Reps)` = "Total.Station.Visits..Not.Sample.Reps.") %>%
+          dplyr::select(StationID, `Total Station Visits (Not Sample Reps)`) 
       } else {
         # if(input$wildcardText != "" & is.null(input$VAHU6Filter) & is.null(input$subbasinFilter) & 
         #      is.null(input$assessmentRegionFilter) & is.null(input$ecoregionFilter)){
@@ -1085,7 +1085,7 @@ shinyServer(function(input, output, session) {
     
     # Add layers to map as requested
     assessmentLayerFilter <- reactive({
-      assessmentLayer %>%
+      assessmentLayer %>% 
         {if(!is.null(input$subbasinFilter))
           filter(., VAHUSB %in% (filter(st_drop_geometry(subbasins), SUBBASIN %in% input$subbasinFilter) %>%
                                    left_join(subbasinVAHU6crosswalk, by='SUBBASIN') %>% distinct(SubbasinVAHU6code) %>% pull()))
@@ -1096,7 +1096,7 @@ shinyServer(function(input, output, session) {
     
     observe({
       req(nrow(reactive_objects$WQM_Stations_Filter) > 0)
-      map_proxy_multi %>%
+      map_proxy_multi %>%  clearMarkers() %>% clearGroup('VAHU6') %>% 
         addCircleMarkers(data = reactive_objects$WQM_Stations_Filter,
                          color='blue', fillColor='gray', radius = 4,
                          fillOpacity = 0.5,opacity=0.8,weight = 2,stroke=T, group="Spatial Filter Station(s)",

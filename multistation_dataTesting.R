@@ -1,5 +1,5 @@
 #source("global_multi.R")
-#source("global.R")
+source("global.R")
 
 ## SQL FYI using library(sqldf)
 #z <- sqldf('SELECT * FROM benSamps WHERE StationID like "2-JKS0%"')
@@ -37,8 +37,8 @@ WQM_Stations_Filter <- filter(benSampsStations, StationID %in% as.character(manu
 
 # Spatial filters troubleshooting
 ### begin
-assessmentRegionFilter <- c("BRRO")#NULL#c("PRO")#unique(subbasins$ASSESS_REG)
-subbasinFilter <- c("New")#"James River - Middle",'Potomac River')#NULL# c("James River - Middle",'Potomac River')#NULL#"James River - Lower"
+assessmentRegionFilter <- c("SWRO")#NULL#c("PRO")#unique(subbasins$ASSESS_REG)
+subbasinFilter <- NULL# c("York")#"James River - Middle",'Potomac River')#NULL# c("James River - Middle",'Potomac River')#NULL#"James River - Lower"
 #filter(subbasins, ASSESS_REG %in% assessmentRegionFilter) %>%
 #  distinct(SUBBASIN) %>% st_drop_geometry() %>%  pull()
 VAHU6Filter <- NULL#'JU11'#NULL 
@@ -48,7 +48,7 @@ VAHU6Filter <- NULL#'JU11'#NULL
 #  distinct(VAHU6) %>% pull()
 ecoregionFilter <- NULL#"Blue Ridge"#unique(ecoregion$US_L3NAME)
 countyFilter <- "Amelia"#NULL
-dateRange_multistation <- c(as.Date('2000-01-01'), as.Date(Sys.Date()- 7))
+dateRange_multistation <- c(as.Date('2020-01-01'), as.Date(Sys.Date()- 7))
 
 WQM_Stations_Filter <- benSampsStations %>%
   left_join(WQM_Stations_Spatial, by = 'StationID') %>% 
@@ -75,7 +75,7 @@ WQM_Stations_Filter <- benSampsStations %>%
   {if(!is.null(dateRange_multistation))
     filter(., StationID %in% filter(benSamps, `Collection Date` >= dateRange_multistation[1] & `Collection Date` <= dateRange_multistation[2])$StationID)
     else .} %>%
-  rename(., `Total Station Visits (Not Sample Reps)` = "Total.Station.Visits..Not.Sample.Reps.") %>%
+  #rename(., `Total Station Visits (Not Sample Reps)` = "Total.Station.Visits..Not.Sample.Reps.") %>%
   dplyr::select(StationID, `Total Station Visits (Not Sample Reps)`)
 ### end  
 
