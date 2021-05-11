@@ -987,9 +987,11 @@ shinyServer(function(input, output, session) {
       remove_modal_spinner()   
       
       if(nrow(reactive_objects$spatialFilter) > 0 ){
-        reactive_objects$WQM_Stations_Filter <- reactive_objects$spatialFilter %>%
-          #rename(., `Total Station Visits (Not Sample Reps)` = "Total.Station.Visits..Not.Sample.Reps.") %>%
-          dplyr::select(StationID, `Total Station Visits (Not Sample Reps)`) 
+        if('Total.Station.Visits..Not.Sample.Reps.' %in% names(reactive_objects$spatialFilter)){
+          reactive_objects$WQM_Stations_Filter <- rename(reactive_objects$spatialFilter, `Total Station Visits (Not Sample Reps)` = "Total.Station.Visits..Not.Sample.Reps.") %>%
+            dplyr::select(StationID, `Total Station Visits (Not Sample Reps)`)
+        } else {
+          reactive_objects$WQM_Stations_Filter <- dplyr::select(reactive_objects$spatialFilter, StationID, `Total Station Visits (Not Sample Reps)`)  }
       } else {
         # if(input$wildcardText != "" & is.null(input$VAHU6Filter) & is.null(input$subbasinFilter) & 
         #      is.null(input$assessmentRegionFilter) & is.null(input$ecoregionFilter)){
@@ -1084,7 +1086,7 @@ shinyServer(function(input, output, session) {
     map_proxy_multi <- leafletProxy("multistationMap")
     
     # Add layers to map as requested
-    assessmentLayerFilter <- reactive({
+    assessmentLayerFilter <- reactive({req(input$subbasinFilter)
       assessmentLayer %>% 
         {if(!is.null(input$subbasinFilter))
           filter(., VAHUSB %in% (filter(st_drop_geometry(subbasins), SUBBASIN %in% input$subbasinFilter) %>%
@@ -1094,8 +1096,7 @@ shinyServer(function(input, output, session) {
           filter(., ASSESS_REG %in% input$assessmentRegionFilter)
           else .} })
     
-    observe({
-      req(nrow(reactive_objects$WQM_Stations_Filter) > 0)
+    observe({req(nrow(reactive_objects$WQM_Stations_Filter) > 0)
       map_proxy_multi %>%  clearMarkers() %>% clearGroup('VAHU6') %>% 
         addCircleMarkers(data = reactive_objects$WQM_Stations_Filter,
                          color='blue', fillColor='gray', radius = 4,
