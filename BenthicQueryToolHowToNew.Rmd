@@ -1,9 +1,9 @@
 ---
 title: "Benthic Query Tool How To"
 output:
-  pdf_document: default
   html_document:
     theme: yeti
+  pdf_document: default
 ---
 
 <br>

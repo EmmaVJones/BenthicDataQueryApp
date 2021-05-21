@@ -39,7 +39,7 @@ shinyServer(function(input, output, session) {
   
   # Master Taxa Data
   observe({
-    reactive_objects$masterTaxaGenus <- pool %>% tbl("Edas_Benthic_Master_Taxa_View") %>%
+    reactive_objects$masterTaxaGenus <- pool %>% tbl(in_schema("wqm",  "Edas_Benthic_Master_Taxa_View")) %>%
       as_tibble() %>%
       # make columns match expected format
       rename('Phylum' = 'PHYLUM_NAME',
@@ -71,7 +71,7 @@ shinyServer(function(input, output, session) {
   # test station viability in separate object
   observeEvent(input$begin, {
     ## Station Information
-    reactive_objects$stationInfo <- pool %>% tbl( "Wqm_Stations_View") %>%
+    reactive_objects$stationInfo <- pool %>% tbl(in_schema("wqm",   "Wqm_Stations_View")) %>%
       filter(Sta_Id %in% !! toupper(input$station)) %>%
       as_tibble() 
     
@@ -93,7 +93,7 @@ shinyServer(function(input, output, session) {
         mutate(Latitude = Y, Longitude = X) # add lat/lng in DD
     } else { # station doesn't yet exist in WQM full dataset
       # get what we can from CEDS
-      stationGISInfo <- pool %>% tbl( "WQM_Sta_GIS_View") %>%
+      stationGISInfo <- pool %>% tbl( in_schema("wqm",  "WQM_Sta_GIS_View")) %>%
         filter(Station_Id %in% !! toupper(input$station)) %>%
         as_tibble() 
       # pull a known station to steal data structure
@@ -119,7 +119,7 @@ shinyServer(function(input, output, session) {
   observeEvent(input$begin && nrow(reactive_objects$stationInfo) > 0, {
     
     ## update Station Information after ensuring station valid
-    reactive_objects$stationInfoFin <- left_join(pool %>% tbl("Wqm_Stations_View") %>%  # need to repull data instead of calling stationInfo bc app crashes
+    reactive_objects$stationInfoFin <- left_join(pool %>% tbl(in_schema("wqm",  "Wqm_Stations_View")) %>%  # need to repull data instead of calling stationInfo bc app crashes
                                                    filter(Sta_Id %in% !! toupper(input$station)) %>%
                                                    as_tibble() %>%
                                                    # add link to data and add link to internal GIS web app with WQS layer on there
@@ -156,7 +156,7 @@ shinyServer(function(input, output, session) {
         summarise(`Sample Codes` = paste0(WQM_YRS_SPG_CODE, collapse = ' | '))
       
       ## Benthic Information
-      reactive_objects$stationBenthics <- pool %>% tbl("Edas_Benthic_View") %>%
+      reactive_objects$stationBenthics <- pool %>% tbl(in_schema("wqm",  "Edas_Benthic_View")) %>%
         filter(STA_ID %in% !! toupper(input$station)) %>%
         as_tibble() %>%
         rename( "StationID" = "STA_ID",
@@ -173,7 +173,7 @@ shinyServer(function(input, output, session) {
       
       
       ## Benthic Sampling Information
-      reactive_objects$stationInfoBenSamps <- pool %>% tbl("Edas_Benthic_Sample_View") %>%
+      reactive_objects$stationInfoBenSamps <- pool %>% tbl(in_schema("wqm",  "Edas_Benthic_Sample_View")) %>%
         filter(STA_ID %in% !! toupper(input$station)) %>%
         as_tibble() %>%
         # fix names
@@ -204,7 +204,7 @@ shinyServer(function(input, output, session) {
       
       
       ## Habitat data must be reactive to adjusted to benthic or habitat date filter
-      reactive_objects$habSampleStation <- pool %>% tbl("Edas_Habitat_Sample_View") %>%
+      reactive_objects$habSampleStation <- pool %>% tbl(in_schema("wqm",  "Edas_Habitat_Sample_View")) %>%
         filter(STA_ID %in% !! toupper(input$station)) %>%
         as_tibble() %>%
         rename("StationID" = "STA_ID",
@@ -259,7 +259,7 @@ shinyServer(function(input, output, session) {
     # Habitat pull after initial hab samps data available
     observe({
       req(nrow(reactive_objects$habSampleStation) >0)
-      reactive_objects$habValuesStation <- pool %>% tbl("Edas_Habitat_Values_View") %>%
+      reactive_objects$habValuesStation <- pool %>% tbl(in_schema("wqm",  "Edas_Habitat_Values_View")) %>%
         filter(WHS_SAMP_ID %in% !! reactive_objects$habSampleStation$HabSampID) %>%
         as_tibble() %>%
         rename("HabSampID" = "WHS_SAMP_ID",
@@ -269,7 +269,7 @@ shinyServer(function(input, output, session) {
                "HabValue Comment" = "WHV_COMMENT") %>%
         dplyr::select(HabSampID, HabParameter, HabParameterDescription, HabValue, `HabValue Comment`)
       
-      reactive_objects$habObsStation <- pool %>% tbl("Edas_Habitat_Observations_View") %>%
+      reactive_objects$habObsStation <- pool %>% tbl(in_schema("wqm",  "Edas_Habitat_Observations_View")) %>%
         filter(WHS_SAMP_ID %in% !! reactive_objects$habSampleStation$HabSampID) %>%
         as_tibble() %>%
         rename("HabSampID" = "WHS_SAMP_ID",

@@ -18,6 +18,7 @@ library(pins)
 library(sqldf)
 library(config)
 library(readxl)
+library(dbplyr)
 
 
 source('helperFunctions/VSCI_metrics_GENUS.R')

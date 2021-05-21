@@ -32,7 +32,7 @@ onStop(function() {
 
 station <- '4AROA198.08'#'1AFOU002.06'#'2-JKS023.61'#'2-SPC002.12'#"IR2019V2151A"#"1ASAN001.45"#"1ASAN000.34"#'2-JKS023.61'
 
-masterTaxaGenus <- pool %>% tbl("Edas_Benthic_Master_Taxa_View") %>%
+masterTaxaGenus <- pool %>% tbl(in_schema("wqm",  "Edas_Benthic_Master_Taxa_View")) %>%
   as_tibble() %>%
   # make columns match expected format
   rename('Phylum' = 'PHYLUM_NAME',
@@ -69,7 +69,7 @@ WQM_Station_Full_REST <- suppressWarnings(
 
 
 
-stationInfoFin <- left_join(pool %>% tbl("Wqm_Stations_View") %>%  # need to repull data instead of calling stationInfo bc app crashes
+stationInfoFin <- left_join(pool %>% tbl(in_schema("wqm",  "Wqm_Stations_View")) %>%  # need to repull data instead of calling stationInfo bc app crashes
                               filter(Sta_Id %in% !! toupper(station)) %>%
                               as_tibble() %>%
                               # add link to data and add link to internal GIS web app with WQS layer on there
@@ -101,7 +101,7 @@ stationInfoSampleMetrics <- stationInfo_sf %>%
   group_by(STATION_ID, `Years Sampled`) %>%
   summarise(`Sample Codes` = paste0(WQM_YRS_SPG_CODE, collapse = ' | '))
 
-stationBenthics <- pool %>% tbl("Edas_Benthic_View") %>%
+stationBenthics <- pool %>% tbl(in_schema("wqm",  "Edas_Benthic_View")) %>%
   filter(STA_ID %in% !! toupper(station)) %>%
   as_tibble() %>%
   rename( "StationID" = "STA_ID",
@@ -118,7 +118,7 @@ stationBenthics <- pool %>% tbl("Edas_Benthic_View") %>%
 
 
 
-stationInfoBenSamps <- pool %>% tbl("Edas_Benthic_Sample_View") %>%
+stationInfoBenSamps <- pool %>% tbl(in_schema("wqm",  "Edas_Benthic_Sample_View")) %>%
   filter(STA_ID %in% !! toupper(station)) %>%
   as_tibble() %>%
   # fix names
@@ -148,7 +148,7 @@ stationInfoBenSamps <- pool %>% tbl("Edas_Benthic_Sample_View") %>%
 
 
 ## Habitat data must be reactive to adjusted to benthic or habitat date filter
-habSampleStation <- pool %>% tbl("Edas_Habitat_Sample_View") %>%
+habSampleStation <- pool %>% tbl(in_schema("wqm",  "Edas_Habitat_Sample_View")) %>%
   filter(STA_ID %in% !! toupper(station)) %>%
   as_tibble() %>%
   rename("StationID" = "STA_ID",
@@ -195,7 +195,7 @@ vmast <- masterTaxaGenus %>%
   filter(!is.na(metric_val))  
 
 
-habValuesStation <- pool %>% tbl("Edas_Habitat_Values_View") %>%
+habValuesStation <- pool %>% tbl(in_schema("wqm",  "Edas_Habitat_Values_View")) %>%
   filter(WHS_SAMP_ID %in% !! habSampleStation$HabSampID) %>%
   as_tibble() %>%
   rename("HabSampID" = "WHS_SAMP_ID",
@@ -205,7 +205,7 @@ habValuesStation <- pool %>% tbl("Edas_Habitat_Values_View") %>%
          "HabValue Comment" = "WHV_COMMENT") %>%
   dplyr::select(HabSampID, HabParameter, HabParameterDescription, HabValue, `HabValue Comment`)
 
-habObsStation <- pool %>% tbl("Edas_Habitat_Observations_View") %>%
+habObsStation <- pool %>% tbl(in_schema("wqm",  "Edas_Habitat_Observations_View")) %>%
   filter(WHS_SAMP_ID %in% !! habSampleStation$HabSampID) %>%
   as_tibble() %>%
   rename("HabSampID" = "WHS_SAMP_ID",
