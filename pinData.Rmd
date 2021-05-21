@@ -74,7 +74,7 @@ pool <- dbPool(
 Pull Genus Master Taxa list.
 
 ```{r masterTaxaGenus}
-masterTaxaGenus <- pool %>% tbl("Edas_Benthic_Master_Taxa_View") %>%
+masterTaxaGenus <- pool %>% tbl(in_schema("wqm",  "Edas_Benthic_Master_Taxa_View")) %>%
   as_tibble() %>%
   # make columns match expected format
   rename('Phylum' = 'PHYLUM_NAME',
@@ -104,7 +104,7 @@ masterTaxaGenus <- pool %>% tbl("Edas_Benthic_Master_Taxa_View") %>%
 Pull Benthics 
 
 ```{r benthics}
-benthics <- pool %>% tbl("Edas_Benthic_View") %>%
+benthics <- pool %>% tbl(in_schema("wqm",  "Edas_Benthic_View")) %>%
         as_tibble() %>%
         rename( "StationID" = "STA_ID",
                 "BenSampID"  = "WBS_SAMP_ID",
@@ -122,7 +122,7 @@ benthics <- pool %>% tbl("Edas_Benthic_View") %>%
 Pull BenSamps 
 
 ```{r benSamps}
-benSamps <- pool %>% tbl("Edas_Benthic_Sample_View") %>%
+benSamps <- pool %>% tbl(in_schema("wqm",  "Edas_Benthic_Sample_View")) %>%
         as_tibble() %>%
         # fix names
         rename( "StationID" = "STA_ID",
@@ -154,7 +154,7 @@ After we bring in WQM_Stations (CEDS) and WQM_Stations_Full (REST) we will impro
 Pull HabSamps
 
 ```{r habSamps}
-habSamps <- pool %>% tbl("Edas_Habitat_Sample_View") %>%
+habSamps <- pool %>% tbl(in_schema("wqm",  "Edas_Habitat_Sample_View")) %>%
         as_tibble() %>%
         rename("StationID" = "STA_ID",
                "HabSampID" = "WHS_SAMP_ID",
@@ -177,7 +177,7 @@ habSamps <- pool %>% tbl("Edas_Habitat_Sample_View") %>%
 Pull HabValues
 
 ```{r habValues}
-habValues <- pool %>% tbl("Edas_Habitat_Values_View") %>%
+habValues <- pool %>% tbl(in_schema("wqm",  "Edas_Habitat_Values_View")) %>%
         as_tibble() %>%
         rename("HabSampID" = "WHS_SAMP_ID",
                "HabParameter" = "WHVP_CODE",
@@ -190,21 +190,21 @@ habValues <- pool %>% tbl("Edas_Habitat_Values_View") %>%
 Pull WQM_Stations_View.
 
 ```{r WQM_Stations_View}
-WQM_Stations_View <- pool %>% tbl("Wqm_Stations_View") %>%  
+WQM_Stations_View <- pool %>% tbl(in_schema("wqm",  "Wqm_Stations_View")) %>%  
   as_tibble()
 ```
 
 Pull WQM_Sta_GIS_View.
 
 ```{r WQM_Sta_GIS_View}
-WQM_Sta_GIS_View <- pool %>% tbl("Wqm_Sta_GIS_View") %>%  
+WQM_Sta_GIS_View <- pool %>% tbl(in_schema("wqm",  "Wqm_Sta_GIS_View")) %>%  
   as_tibble()
 ```
 
 Pull HabObs
 
 ```{r habObs}
-habObs <- pool %>% tbl("Edas_Habitat_Observations_View") %>%
+habObs <- pool %>% tbl(in_schema("wqm",  "Edas_Habitat_Observations_View")) %>%
         as_tibble() %>%
         rename("HabSampID" = "WHS_SAMP_ID",
                "ObsParameter" = "WOBP_CODE",
@@ -482,14 +482,14 @@ Pull Enforcement Data
 
 ```{r enforcement, eval = FALSE}
 # Facilities Data (for joining)
-enfFacilities <- pool %>% tbl("Enf_Facilities_View") %>%
+enfFacilities <- pool %>% tbl(in_schema("enf",  "Enf_Facilities_View")) %>%
   as_tibble()
 
 # get start of year filter information
 startOfYear <- as.Date(paste0(year(Sys.Date()), '-01-01'))
 
 # Case data
-enfCases <- pool %>% tbl("Enf_enforcement_Cases_View") %>%
+enfCases <- pool %>% tbl(in_schema("enf",  "Enf_enforcement_Cases_View")) %>%
   filter(between(Enc_Executed_Date, !! startOfYear, !! Sys.Date()) |
            between(Enc_Nov_Date, !! startOfYear, !! Sys.Date()) |
            between(Enc_Terminated_Date, !! startOfYear, !! Sys.Date()) ) %>%
