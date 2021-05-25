@@ -2,6 +2,7 @@ source('global.R')
 
 assessmentRegions <- st_read( 'data/GIS/AssessmentRegions_simple.shp')
 ecoregion <- st_read('data/GIS/vaECOREGIONlevel3__proj84.shp')
+ecoregionLevel4 <- st_read('data/GIS/vaECOREGIONlevel4__proj84.shp')
 county <- st_read('data/GIS/VACountyBoundaries.shp')
 assessmentLayer <- st_read('data/GIS/AssessmentRegions_VA84_basins.shp') %>%
   st_transform( st_crs(4326))
@@ -134,11 +135,11 @@ shinyServer(function(input, output, session) {
                                                  #filter(WQM_Station_View, Sta_Id %in% toupper(input$station)), # need to filter instead of calling stationInfo bc app crashes
                                                  dplyr::select(WQM_Station_Full_REST(), #WQM_STATIONS_FINAL, 
                                                                STATION_ID, Latitude, Longitude, WQM_STA_STRAHER_ORDER, EPA_ECO_US_L3CODE,
-                                                               EPA_ECO_US_L3NAME, BASINS_HUC_8_NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
+                                                               EPA_ECO_US_L3NAME, EPA_ECO_US_L4CODE, EPA_ECO_US_L4NAME, BASINS_HUC_8_NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
                                                                WQS_SPSTDS, WQS_PWS, WQS_TROUT, WQS_TIER_III),
                                                  by = c('Sta_Id' = 'STATION_ID')) %>%
       dplyr::select(Sta_Id, Sta_Desc, `CEDS Station View Link`, `DEQ GIS Web App Link`, Latitude, Longitude, WQM_STA_STRAHER_ORDER, EPA_ECO_US_L3CODE,
-                    EPA_ECO_US_L3NAME, BASINS_HUC_8_NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
+                    EPA_ECO_US_L3NAME, EPA_ECO_US_L4CODE, EPA_ECO_US_L4NAME, BASINS_HUC_8_NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
                     WQS_SPSTDS, WQS_PWS, WQS_TROUT, WQS_TIER_III, everything())
     
     ## Station Geospatial Information
@@ -910,7 +911,11 @@ shinyServer(function(input, output, session) {
     
     output$spatialFilters_Ecoregion <- renderUI({req(input$queryType == 'Spatial Filters')
       list(helpText("Additional filter(s) applied on 'Pull Stations' request. "),
-           selectInput('ecoregionFilter','Level 3 Ecoregion', choices = unique(ecoregion$US_L3NAME), multiple = T)) })
+           selectInput('ecoregionFilter','Level 3 Ecoregion', choices = sort(unique(ecoregion$US_L3NAME)), multiple = T)) })
+    
+    output$spatialFilters_EcoregionLevel4 <- renderUI({req(input$queryType == 'Spatial Filters')
+      selectInput('ecoregionLevel4Filter','Level 4 Ecoregion', choices = sort(unique(ecoregionLevel4$US_L4NAME)), multiple = T) })
+    
     
     output$spatialFilters_County <- renderUI({req(input$queryType == 'Spatial Filters')
       selectInput('countyFilter','County/City', choices = sort(unique(county$NAME)), multiple = T) })
@@ -978,6 +983,9 @@ shinyServer(function(input, output, session) {
           filter(., US_L3NAME %in% input$ecoregionFilter)
           #st_intersection(., filter(ecoregion, US_L3NAME %in% ecoregionFilter))
           else .}  %>%
+        {if(!is.null(input$ecoregionLevel4Filter))
+          filter(., US_L4NAME %in% input$ecoregionLevel4Filter)
+          else .} %>%
         {if(!is.null(input$countyFilter))
           filter(., CountyCityName %in% input$countyFilter)
           else .} %>% 
@@ -1035,11 +1043,11 @@ shinyServer(function(input, output, session) {
                                                         ########filter(WQM_Station_View, Sta_Id %in% toupper(input$station)), # need to filter instead of calling stationInfo bc app crashes
                                                         dplyr::select(WQM_Station_Full, 
                                                                       STATION_ID, Latitude, Longitude, WQM_STA_STRAHER_ORDER, EPA_ECO_US_L3CODE,
-                                                                      EPA_ECO_US_L3NAME, BASINS_HUC_8_NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
+                                                                      EPA_ECO_US_L3NAME, EPA_ECO_US_L4CODE, EPA_ECO_US_L4NAME, BASINS_HUC_8_NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
                                                                       WQS_SPSTDS, WQS_PWS, WQS_TROUT, WQS_TIER_III, WQM_YRS_YEAR, WQM_YRS_SPG_CODE),
                                                         by = c('Sta_Id' = 'STATION_ID')) %>%
         dplyr::select(Sta_Id, Sta_Desc, `CEDS Station View Link`, `DEQ GIS Web App Link`, Latitude, Longitude, WQM_STA_STRAHER_ORDER, EPA_ECO_US_L3CODE,
-                      EPA_ECO_US_L3NAME, BASINS_HUC_8_NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
+                      EPA_ECO_US_L3NAME,EPA_ECO_US_L4CODE, EPA_ECO_US_L4NAME, BASINS_HUC_8_NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
                       WQS_SPSTDS, WQS_PWS, WQS_TROUT, WQS_TIER_III, everything()) 
       
       # Empty station user selection to start with

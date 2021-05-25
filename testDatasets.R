@@ -84,11 +84,11 @@ stationInfoFin <- left_join(pool %>% tbl(in_schema("wqm",  "Wqm_Stations_View"))
                             #filter(WQM_Station_View, Sta_Id %in% toupper(input$station)), # need to filter instead of calling stationInfo bc app crashes
                             dplyr::select(WQM_Station_Full_REST,#WQM_STATIONS_FINAL, 
                                           STATION_ID, WQM_STA_STRAHER_ORDER, EPA_ECO_US_L3CODE,
-                                          EPA_ECO_US_L3NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
+                                          EPA_ECO_US_L3NAME, EPA_ECO_US_L4CODE, EPA_ECO_US_L4NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
                                           WQS_SPSTDS, WQS_PWS, WQS_TROUT, WQS_TIER_III),
                             by = c('Sta_Id' = 'STATION_ID')) %>%
   dplyr::select(Sta_Id, Sta_Desc, `CEDS Station View Link`, `DEQ GIS Web App Link`, WQM_STA_STRAHER_ORDER, EPA_ECO_US_L3CODE,
-                EPA_ECO_US_L3NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
+                EPA_ECO_US_L3NAME, EPA_ECO_US_L4CODE, EPA_ECO_US_L4NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
                 WQS_SPSTDS, WQS_PWS, WQS_TROUT, WQS_TIER_III, everything())
 
 stationInfo_sf <- WQM_Station_Full_REST#filter(WQM_STATIONS_FINAL, STATION_ID %in% station) 

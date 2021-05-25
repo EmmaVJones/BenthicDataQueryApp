@@ -33,6 +33,7 @@ library(DBI)
 library(pins)
 library(config)
 library(lubridate)
+library(dbplyr)
 
 # get configuration settings
 conn <- config::get("connectionSettings")
@@ -232,6 +233,7 @@ Create a BenSampsStations dataset with ecoregion and assessment region informati
 ```{r ecoregion assessment}
 #Bring in extra large ecoregion and assessment region files. By extra large we mean that they are continuous outside the state boundary such that stations that fall outside the state are not removed when spatially intersected
 ecoregionLarge <- st_read('data/GIS/VA_level3ecoregion_WGS84.shp')
+ecoregion4Large <- st_read('data/GIS/VA_level4ecoregion_WGS84.shp')
 county <- st_read('data/GIS/VACountyBoundaries.shp')
 #assessmentRegionLarge <- st_read('data/GIS/AssessmentRegions_buffer.shp')
 ```
@@ -252,6 +254,7 @@ WQM_Stations_Spatial_pin <- pin_get('ejones/WQM-Stations-Spatial')
 
 # identify any new sites that have been added to CEDS since the last analysis
 WQM_Stations_Spatial1 <- filter(WQM_Sta_GIS_View, ! Station_Id %in% WQM_Stations_Spatial_pin$StationID) %>%
+  #WQM_Sta_GIS_View %>% # For when running a big new analysis where all data needs it
   distinct(Station_Id, .keep_all = T) %>% # first makes sure only 1 record per station
   filter(!is.na(Latitude) | !is.na(Longitude)) %>% # make sure all stations have coordinates
   dplyr::select(StationID = Station_Id, Latitude, Longitude) %>% 
@@ -261,25 +264,25 @@ WQM_Stations_Spatial1 <- filter(WQM_Sta_GIS_View, ! Station_Id %in% WQM_Stations
            remove = F, # don't remove these lat/lon cols from df
            crs = 4326) 
 
-# Add Ecoregion Info
+# # Add Level 3 Ecoregion Info
+# WQM_Stations_SpatialEco <- filter(WQM_Stations_Spatial1, is.na(US_L3CODE)) %>%
+#   st_intersection(#WQM_Stations_Spatial1, 
+#     dplyr::select(ecoregionLarge, US_L3CODE, US_L3NAME)) %>%st_drop_geometry()
+
+# Add Level 3 and 4 Ecoregion Info
 WQM_Stations_SpatialEco <- #filter(WQM_Stations_Spatial1, is.na(US_L3CODE)) %>%
-  st_intersection(WQM_Stations_Spatial1, dplyr::select(ecoregionLarge, US_L3CODE, US_L3NAME)) %>%st_drop_geometry()
-#  mutate(US_L3CODE = as.character(`US_L3CODE.1`), US_L3NAME = as.character(`US_L3NAME.1`)) %>%
-#  dplyr::select(-c(US_L3CODE.1, US_L3NAME.1)) %>% st_drop_geometry()
+  st_intersection(WQM_Stations_Spatial1, dplyr::select(ecoregion4Large, US_L3CODE, US_L3NAME, US_L4CODE, US_L4NAME )) %>%st_drop_geometry()
 
 # CountyCity Name info
-WQM_Stations_SpatialCounty <- #filter(WQM_Stations_Spatial1, is.na(US_L3CODE)) %>%
-  st_intersection(WQM_Stations_Spatial1, dplyr::select(county, CountyCityName = NAME, FIPS)) %>%st_drop_geometry()
-
+WQM_Stations_SpatialCounty <- st_intersection(WQM_Stations_Spatial1, dplyr::select(county, CountyCityName = NAME, FIPS)) %>%st_drop_geometry()
 
 # Add Assessment and Basin Info
-WQM_Stations_SpatialAssess <- #filter(WQM_Stations_Spatial1, is.na(ASSESS_REG)) %>%
-  st_intersection(WQM_Stations_Spatial1, unrestrictedAssessmentRegionVAHU6Subbasin) %>% #assessmentRegionLarge) %>%
+WQM_Stations_SpatialAssess <- st_intersection(WQM_Stations_Spatial1,unrestrictedAssessmentRegionVAHU6Subbasin) %>% #assessmentRegionLarge) %>%
   distinct(StationID, .keep_all = T) %>% st_drop_geometry() 
 #  mutate(ASSESS_REG = ASSESS_REG.1) %>% 
 #  dplyr::select(-c(OBJECTID:HUMOD, OBJECTID_1, ASSESS_REG.1))%>% st_drop_geometry()
 
-WQM_Stations_Spatial2 <- full_join(dplyr::select(WQM_Stations_SpatialEco, StationID:US_L3NAME),
+WQM_Stations_Spatial2 <- full_join(dplyr::select(WQM_Stations_SpatialEco, StationID:US_L4NAME),
                                         dplyr::select(WQM_Stations_SpatialAssess, StationID, VAHU6, ASSESS_REG:Basin_Code ),
                                         by='StationID') %>% 
   full_join(dplyr::select(WQM_Stations_SpatialCounty, StationID, CountyCityName, FIPS),
@@ -313,8 +316,10 @@ benSampsStations1 <- benSamps %>%
   left_join(dplyr::select(WQM_Stations_View, Sta_Id, Sta_Desc), by = c('StationID' = 'Sta_Id')) %>%
   dplyr::select(StationID, Sta_Desc, `Total Station Visits (Not Sample Reps)`, Latitude, Longitude) %>%
   #pull this where readily available to save time
-  left_join(dplyr::select(WQM_Station_Full, WQM_STA_ID, US_L3CODE = EPA_ECO_US_L3CODE, US_L3NAME = EPA_ECO_US_L3NAME),
-            by =c('StationID'= 'WQM_STA_ID')) %>%
+  left_join(dplyr::select(WQM_Stations_Spatial,StationID, US_L3CODE:US_L4NAME),
+            by ='StationID') %>%
+  # left_join(dplyr::select(WQM_Station_Full, WQM_STA_ID, US_L3CODE = EPA_ECO_US_L3CODE, US_L3NAME = EPA_ECO_US_L3NAME),
+  #           by =c('StationID'= 'WQM_STA_ID')) %>%
   filter(!is.na(Latitude) | !is.na(Longitude)) %>%
   st_as_sf(coords = c("Longitude", "Latitude"),  # make spatial layer using these columns
            remove = T, # don't remove these lat/lon cols from df
@@ -322,18 +327,21 @@ benSampsStations1 <- benSamps %>%
 
 # Need to join sites missing ecoregion information manually
 benSampsStationsEco <- filter(benSampsStations1, is.na(US_L3CODE)) %>%
-  st_intersection(dplyr::select(ecoregionLarge, US_L3CODE, US_L3NAME)) %>%
-  mutate(US_L3CODE1 = as.character(`US_L3CODE.1`), US_L3NAME1 = as.character(`US_L3NAME.1`)) %>%
+  st_intersection(dplyr::select(ecoregion4Large, US_L3CODE, US_L3NAME, US_L4CODE, US_L4NAME )) %>%
+  mutate(US_L3CODE1 = as.character(`US_L3CODE.1`), US_L3NAME1 = as.character(`US_L3NAME.1`),
+         US_L4CODE1 = as.character(`US_L4CODE.1`), US_L4NAME1 = as.character(`US_L4NAME.1`)) %>%
   dplyr::select(StationID, `Total Station Visits (Not Sample Reps)` = "Total.Station.Visits..Not.Sample.Reps.",
-                US_L3CODE1, US_L3NAME1) %>%
+                US_L3CODE1, US_L3NAME1, US_L4CODE1, US_L4NAME1) %>%
   st_drop_geometry() # drop geometry for the join
 
 # combine with benSampsStations with a join because for some reason rbind() is dropping the ecoregion information
 benSampsStationsTogether <- left_join(benSampsStations1, benSampsStationsEco, 
                                       by = c('StationID', 'Total Station Visits (Not Sample Reps)')) %>%
   mutate(US_L3CODE = ifelse(is.na(US_L3CODE), US_L3CODE1, US_L3CODE),
-         US_L3NAME = ifelse(is.na(US_L3NAME), US_L3NAME1, US_L3NAME)) %>%
-  dplyr::select( StationID, Sta_Desc, `Total Station Visits (Not Sample Reps)`, US_L3CODE, US_L3NAME)
+         US_L3NAME = ifelse(is.na(US_L3NAME), US_L3NAME1, US_L3NAME),
+         US_L4CODE = ifelse(is.na(US_L4CODE), US_L4CODE1, US_L4CODE),
+         US_L4NAME = ifelse(is.na(US_L4NAME), US_L4NAME1, US_L4NAME)) %>%
+  dplyr::select( StationID, Sta_Desc, `Total Station Visits (Not Sample Reps)`, US_L3CODE, US_L3NAME, US_L4CODE, US_L4NAME)
 
 benSampsStations <- st_intersection(benSampsStationsTogether, unrestrictedAssessmentRegionVAHU6Subbasin) %>% #assessmentRegionLarge) %>%
   rename('Total Station Visits (Not Sample Reps)' = "Total.Station.Visits..Not.Sample.Reps.") %>%

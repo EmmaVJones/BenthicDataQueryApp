@@ -189,6 +189,7 @@ shinyUI(fluidPage(tags$head(
                                                      uiOutput('spatialFilters_VAHU6'),
                                                      hr(),
                                                      uiOutput('spatialFilters_Ecoregion'),
+                                                     uiOutput('spatialFilters_EcoregionLevel4'),
                                                      uiOutput('spatialFilters_County'),
                                                      uiOutput('dateRange_multistationUI'),
                                                      br(),

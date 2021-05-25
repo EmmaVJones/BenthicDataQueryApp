@@ -11,6 +11,7 @@ source("global.R")
 
 assessmentRegions <- st_read( 'data/GIS/AssessmentRegions_simple.shp')
 ecoregion <- st_read('data/GIS/vaECOREGIONlevel3__proj84.shp')
+ecoregionLevel4 <- st_read('data/GIS/vaECOREGIONlevel4__proj84.shp')
 county <- st_read('data/GIS/VACountyBoundaries.shp')
 assessmentLayer <- st_read('data/GIS/AssessmentRegions_VA84_basins.shp') %>%
   st_transform( st_crs(4326)) 
@@ -37,8 +38,8 @@ WQM_Stations_Filter <- filter(benSampsStations, StationID %in% as.character(manu
 
 # Spatial filters troubleshooting
 ### begin
-assessmentRegionFilter <- c("BRRO")#NULL#c("PRO")#unique(subbasins$ASSESS_REG)
-subbasinFilter <- "James River - Middle"#NULL# c("York")#"James River - Middle",'Potomac River')#NULL# c("James River - Middle",'Potomac River')#NULL#"James River - Lower"
+assessmentRegionFilter <- c("NRO","PRO")#NULL#c("PRO")#unique(subbasins$ASSESS_REG)
+subbasinFilter <- NULL#"James River - Middle"#NULL# c("York")#"James River - Middle",'Potomac River')#NULL# c("James River - Middle",'Potomac River')#NULL#"James River - Lower"
 #filter(subbasins, ASSESS_REG %in% assessmentRegionFilter) %>%
 #  distinct(SUBBASIN) %>% st_drop_geometry() %>%  pull()
 VAHU6Filter <- NULL#'JU11'#NULL 
@@ -47,8 +48,9 @@ VAHU6Filter <- NULL#'JU11'#NULL
 #  left_join(st_drop_geometry(assessmentLayer), by=c('SubbasinVAHU6code'='VAHUSB') ) %>%
 #  distinct(VAHU6) %>% pull()
 ecoregionFilter <- NULL#"Blue Ridge"#unique(ecoregion$US_L3NAME)
+ecoregionLevel4Filter <- 'Triassic Lowlands'# NULL#"Blue Ridge"#unique(ecoregion$US_L3NAME)
 countyFilter <- NULL#"Amelia"#
-dateRange_multistation <- c(as.Date('2019-01-01'), as.Date(Sys.Date()- 7))
+dateRange_multistation <- c(as.Date('1990-01-01'), as.Date(Sys.Date()- 7))
 
 WQM_Stations_Filter <- benSampsStations %>%
   left_join(WQM_Stations_Spatial, by = 'StationID') %>% 
@@ -67,6 +69,10 @@ WQM_Stations_Filter <- benSampsStations %>%
     else .} %>%
   {if(!is.null(ecoregionFilter))
     filter(., US_L3NAME %in% ecoregionFilter)
+    #st_intersection(., filter(ecoregion, US_L3NAME %in% ecoregionFilter))
+    else .} %>%
+  {if(!is.null(ecoregionLevel4Filter))
+    filter(., US_L4NAME %in% ecoregionLevel4Filter)
     #st_intersection(., filter(ecoregion, US_L3NAME %in% ecoregionFilter))
     else .} %>%
   {if(!is.null(countyFilter))
@@ -101,11 +107,11 @@ multistationInfoFin <- left_join(Wqm_Stations_View %>%  # need to repull data in
                                  ########filter(WQM_Station_View, Sta_Id %in% toupper(input$station)), # need to filter instead of calling stationInfo bc app crashes
                                  dplyr::select(filter(WQM_Station_Full, STATION_ID %in% WQM_Stations_Filter$StationID), 
                                                STATION_ID, WQM_STA_STRAHER_ORDER, EPA_ECO_US_L3CODE,
-                                               EPA_ECO_US_L3NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
+                                               EPA_ECO_US_L3NAME, EPA_ECO_US_L4CODE, EPA_ECO_US_L4NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
                                                WQS_SPSTDS, WQS_PWS, WQS_TROUT, WQS_TIER_III, WQM_YRS_YEAR, WQM_YRS_SPG_CODE),
                                  by = c('Sta_Id' = 'STATION_ID')) %>%
   dplyr::select(Sta_Id, Sta_Desc, `CEDS Station View Link`, `DEQ GIS Web App Link`, WQM_STA_STRAHER_ORDER, EPA_ECO_US_L3CODE,
-                EPA_ECO_US_L3NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
+                EPA_ECO_US_L3NAME, EPA_ECO_US_L4CODE, EPA_ECO_US_L4NAME, BASINS_VAHU6, WQS_WATER_NAME, WQS_SEC, WQS_CLASS, 
                 WQS_SPSTDS, WQS_PWS, WQS_TROUT, WQS_TIER_III, everything())
 
 # filters down to user selection from map
