@@ -30,7 +30,7 @@ onStop(function() {
 })
 
 
-station <- '4AROA198.08'#'1AFOU002.06'#'2-JKS023.61'#'2-SPC002.12'#"IR2019V2151A"#"1ASAN001.45"#"1ASAN000.34"#'2-JKS023.61'
+station <- '4AROA216.75' # '5ACHP002.03'#'2-CRL001.83'#'4AROA198.08'#'1AFOU002.06'#'2-JKS023.61'#'2-SPC002.12'#"IR2019V2151A"#"1ASAN001.45"#"1ASAN000.34"#'2-JKS023.61'
 
 masterTaxaGenus <- pool %>% tbl(in_schema("wqm",  "Edas_Benthic_Master_Taxa_View")) %>%
   as_tibble() %>%

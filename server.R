@@ -1459,6 +1459,23 @@ shinyServer(function(input, output, session) {
                 options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
                                pageLength = nrow(z),
                                buttons=list('copy','colvis')))  })
+    
+    
+    ## BSA benthics Data download tab
+    
+    # should simplify bsa output for new tool to a single format that smashes all metrics together and leaves blank the ones that don't apply
+    #  so user doesn't need ot have multiple benthic template formats for upload (e.g. VSCI, VCPMI63, VCPMI65)
+    
+    # output$multistationBSAbenthicData <- DT::renderDataTable({req(reactive_objects$benthics_Filter)
+    #   z <- BSAbenthicOutputFunction(input$SCIchoice, reactive_objects$benthics_Filter, WQM_Station_Full_REST())
+    #   datatable(z, rownames = F, escape= F, extensions = 'Buttons',
+    #             options = list(dom = 'Bift', scrollX= TRUE, scrollY = '300px',
+    #                            pageLength = nrow(z),  buttons=list('copy',
+    #                                                                list(extend='csv',filename=paste0('BSAbenthicTemplateData', Sys.Date())),
+    #                                                                list(extend='excel',filename=paste0('BSAbenthicTemplateData', Sys.Date())),
+    #                                                                'colvis')), selection = 'none') })
+    # 
+    
 
     
     # SCI Seasonal Crosstab Table

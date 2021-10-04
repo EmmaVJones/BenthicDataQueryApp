@@ -263,20 +263,28 @@ shinyUI(fluidPage(tags$head(
                                                                        users to see additional SCI scores.'),
                                                               selectInput('sciChanger', 'SCI Choice', choices = c('VSCI', 'VCPMI + 63', 'VCPMI - 65')),
                                                               DT::dataTableOutput('SCIresultsAdjusted')),
-                                                     tabPanel('Raw Benthic Data',
+                                                     tabPanel('Raw Data Download Formats',
                                                               tabsetPanel(
-                                                                tabPanel('Genus Level Crosstab View',
+                                                                tabPanel('Raw Genus Level Data Crosstab View',
                                                                          DT::dataTableOutput('rawMultistationBenthicCrosstabGenus'),
                                                                          br(), br(), br()), # a little breathing room
-                                                                tabPanel('Genus Level Long View',
+                                                                tabPanel('Raw Genus Level Data Long View',
                                                                          DT::dataTableOutput('rawMultistationBenthicGenus'),
                                                                          br(), br(), br()),
-                                                                tabPanel('Family Level Crosstab View',
+                                                                tabPanel('Raw Family Level Data Crosstab View',
                                                                          DT::dataTableOutput('rawMultistationBenthicCrosstabFamily'),
                                                                          br(), br(), br()), # a little breathing room
-                                                                tabPanel('Family Level Long View',
+                                                                tabPanel('Raw Family Level Data Long View',
                                                                          DT::dataTableOutput('rawMultistationBenthicFamily'),
-                                                                         br(), br(), br())) # a little breathing room
+                                                                         br(), br(), br()), # a little breathing room
+                                                                tabPanel('Benthic Stressor Analysis Data Format',
+                                                                       helpText('This table displays benthic data for the selected stations and filters for upload into
+                                                                                  the Benthic Stressor Analysis Tool. SCI scores and metrics are based upon the suggested 
+                                                                                SCI from Level 3 Ecoregion and basin information. If the suggested SCI is not your desired SCI, 
+                                                                                please replace the data in a local spreadsheet with data queried from the Single Station Benthic
+                                                                                Stressor Analysis Data Format output.'),
+                                                                       h5(strong('The BSA tool only accepts .xlsx data format for this dataset.')),
+                                                                       DT::dataTableOutput('multistationBSAbenthicData'))) # a little breathing room
                                                      ),
                                                      tabPanel('Benthic Visualization Tools',
                                                               helpText('This tab combines various analysis tools from regional biologists to share data visualization

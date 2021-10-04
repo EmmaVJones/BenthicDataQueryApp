@@ -29,7 +29,7 @@ queryType <- 'Manually Specify Stations'#'Spatial Filters' #Interactive Selectio
 
 
 # manually specify troubleshooting
-manualSelection1 <- c('1BSMT001.53','1BSMT006.62','1BSMT009.08')#1AFOU002.06')
+manualSelection1 <- c('4AROA219.08','4AROA218.11','4AROA217.38', '4AROA216.75')#c('1BSMT001.53','1BSMT006.62','1BSMT009.08')#1AFOU002.06')
 WQM_Stations_Filter <- filter(benSampsStations, StationID %in% as.character(manualSelection1))  
 # skip down to multistationInfoFin
 
@@ -50,7 +50,7 @@ VAHU6Filter <- NULL#'JU11'#NULL
 ecoregionFilter <- NULL#"Blue Ridge"#unique(ecoregion$US_L3NAME)
 ecoregionLevel4Filter <- 'Triassic Lowlands'# NULL#"Blue Ridge"#unique(ecoregion$US_L3NAME)
 countyFilter <- NULL#"Amelia"#
-dateRange_multistation <- c(as.Date('1990-01-01'), as.Date(Sys.Date()- 7))
+dateRange_multistation <- c(as.Date('2018-01-01'), as.Date(Sys.Date()- 7))
 
 WQM_Stations_Filter <- benSampsStations %>%
   left_join(WQM_Stations_Spatial, by = 'StationID') %>% 
@@ -300,6 +300,12 @@ benthics_FilterFamily <- filter(benthics, BenSampID %in% benSamps_Filter_fin$Ben
   dplyr::select(StationID, `Collection Date`, BenSampID, RepNum, `Final VA Family ID`, 
                 Individuals, Taxonomist, `Entered By`, `Entered Date`) %>%
   arrange(StationID, `Collection Date`)
+
+
+
+## BSA benthics output
+BSAbenthicOutputFunction(SCIchoice = 'VCPMI - 65', SCI_filter, WQM_Station_Full) %>% distinct(BenSampID, .keep_all = T)
+BSAbenthicOutputFunction(SCIchoice = 'VSCI', SCI_filter, WQM_Station_Full)
 
 
 
