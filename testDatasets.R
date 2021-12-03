@@ -276,9 +276,9 @@ glimpse(stationBenthicsFilterOptions)
 # Run SCI
 SCIresults <- SCI(stationBenthicsDateRange = stationBenthicsDateRange, SCIchoice = "VSCI", stationInfoBenSampsDateRange, masterTaxaGenus, vmast) %>%
   mutate_if(is.numeric, round, digits=2) # rounds all numeric columns to 2 decimal places
-SCIresults <- SCI(stationBenthicsDateRange = stationBenthicsDateRange, SCIchoice = "VCPMI + 63", stationInfoBenSampsDateRange, masterTaxaGenus, vmast) %>%
+SCIresults <- SCI(stationBenthicsDateRange = stationBenthicsDateRange, SCIchoice = "VCPMI63 + Chowan", stationInfoBenSampsDateRange, masterTaxaGenus, vmast) %>%
   mutate_if(is.numeric, round, digits=2) # rounds all numeric columns to 2 decimal places
-SCIresults <- SCI(stationBenthicsDateRange = stationBenthicsDateRange, SCIchoice = "VCPMI - 65", stationInfoBenSampsDateRange, masterTaxaGenus, vmast) %>%
+SCIresults <- SCI(stationBenthicsDateRange = stationBenthicsDateRange, SCIchoice = "VCPMI65 - Chowan", stationInfoBenSampsDateRange, masterTaxaGenus, vmast) %>%
   mutate_if(is.numeric, round, digits=2) # rounds all numeric columns to 2 decimal places
 
 
@@ -286,7 +286,7 @@ SCIresults$Season <- factor(SCIresults$Season,levels=c("Spring","Outside Sample 
 
 
 ## BSA benthics output
-BSAbenthicOutputFunction(SCIchoice = 'VCPMI - 65', SCIresults, WQM_Station_Full)
+BSAbenthicOutputFunction(SCIchoice = 'VCPMI65 - Chowan', SCIresults, WQM_Station_Full)
 
 
 

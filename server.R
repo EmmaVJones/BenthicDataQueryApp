@@ -85,7 +85,8 @@ shinyServer(function(input, output, session) {
 
     WQM_Station_Full_REST <- suppressWarnings(
       geojson_sf(
-        paste0("http://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%27",
+        paste0("http://apps.deq.virginia.gov/arcgis/rest/services/public/WQM_STATIONS_ALL/MapServer/0/query?&where=STATION_ID%3D%27",
+          #"http://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%27",
                toupper(input$station),"%27&outFields=*&f=geojson")))
     
     if(nrow(WQM_Station_Full_REST ) > 0){
@@ -100,7 +101,8 @@ shinyServer(function(input, output, session) {
       # pull a known station to steal data structure
       WQM_Station_Full_REST <- suppressWarnings(
         geojson_sf(
-          paste0("http://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%272-JKS023.61%27&outFields=*&f=geojson")))[1,] %>%
+          paste0("http://apps.deq.virginia.gov/arcgis/rest/services/public/WQM_STATIONS_ALL/MapServer/0/query?&where=STATION_ID%3D%272-JKS023.61%27&outFields=*&f=geojson")))[1,] %>%
+            #"http://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%272-JKS023.61%27&outFields=*&f=geojson")))[1,] %>%
         mutate(WQM_YRS_YEAR = ifelse(!is.na(WQM_YRS_YEAR), lubridate::year(as.Date(as.POSIXct(WQM_YRS_YEAR/1000, origin="1970-01-01"))), NA)) %>%
         st_drop_geometry()
       WQM_Station_Full_REST <- bind_rows(WQM_Station_Full_REST[0,],
@@ -1216,6 +1218,8 @@ shinyServer(function(input, output, session) {
         left_join(dplyr::select(WQM_Station_Full, WQM_STA_ID, EPA_ECO_US_L3NAME, EPA_ECO_US_L3CODE) %>%
                     distinct(WQM_STA_ID, .keep_all = T),
                   by = c("StationID" = "WQM_STA_ID")) %>%
+        # bring in basin info
+        left_join(dplyr::select(WQM_Stations_Spatial, StationID, Basin = Basin_Code)) %>% 
         # filter by user decisions
         {if(input$multistationRarifiedFilter)
           filter(.,  `Target Count` == 110)
@@ -1272,9 +1276,9 @@ shinyServer(function(input, output, session) {
       # SCI results
       reactive_objects$SCI_filter <- filter(VSCIresults, BenSampID %in% filter(reactive_objects$benSamps_Filter_fin, ! EPA_ECO_US_L3CODE %in% c(63,65))$BenSampID) %>%
         bind_rows(
-          filter(VCPMI63results, BenSampID %in% filter(reactive_objects$benSamps_Filter_fin,  EPA_ECO_US_L3CODE %in% c(63))$BenSampID)  ) %>%
+          filter(VCPMI63results, BenSampID %in% filter(reactive_objects$benSamps_Filter_fin,  EPA_ECO_US_L3CODE %in% c(63) | str_detect(Basin, "Chowan"))$BenSampID)  ) %>%
         bind_rows(
-          filter(VCPMI65results, BenSampID %in% filter(reactive_objects$benSamps_Filter_fin,  EPA_ECO_US_L3CODE %in% c(65))$BenSampID)  ) %>%
+          filter(VCPMI65results, BenSampID %in% filter(reactive_objects$benSamps_Filter_fin,  EPA_ECO_US_L3CODE %in% c(65)& !str_detect(Basin, "Chowan"))$BenSampID)  ) %>%
         mutate(SeasonGradient = as.factor(paste0(Season, " (",Gradient,")")),
                SeasonGradientColor = case_when(SeasonGradient == "Spring (Riffle)" ~  "#66C2A5",
                                                SeasonGradient == "Spring (Boatable)" ~  "#66C2A5",
@@ -1393,8 +1397,8 @@ shinyServer(function(input, output, session) {
     output$SCIresultsAdjusted <- DT::renderDataTable({req(input$sciChanger)
       # change SCI results based on user choice
       if(input$sciChanger == 'VSCI'){z <- filter(VSCIresults, BenSampID %in% reactive_objects$benSamps_Filter_fin$BenSampID)}
-      if(input$sciChanger == 'VCPMI + 63'){z <- filter(VCPMI63results, BenSampID %in% reactive_objects$benSamps_Filter_fin$BenSampID)}
-      if(input$sciChanger == 'VCPMI - 65'){z <- filter(VCPMI65results, BenSampID %in% reactive_objects$benSamps_Filter_fin$BenSampID)}
+      if(input$sciChanger == 'VCPMI63 + Chowan'){z <- filter(VCPMI63results, BenSampID %in% reactive_objects$benSamps_Filter_fin$BenSampID)}
+      if(input$sciChanger == 'VCPMI65 - Chowan'){z <- filter(VCPMI65results, BenSampID %in% reactive_objects$benSamps_Filter_fin$BenSampID)}
       z <- dplyr::select(z, StationID:`Collection Date`, BenSampID, everything()) %>%
         arrange(StationID, `Collection Date`, RepNum)
       

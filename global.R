@@ -229,12 +229,12 @@ SCI <- function(stationBenthicsDateRange, SCIchoice, benSamps, masterTaxaGenus, 
     mutate(SCI = 'VSCI',
            `SCI Threshold` = 60) %>% 
     rename("SCI Score" ="Fam SCI")}
-  if(SCIchoice == 'VCPMI + 63'){SCI <- VCPMI63calculation(bugTraits,exclusionMath,vmast) %>%
-    mutate(SCI = 'VCPMI + 63',
+  if(SCIchoice == 'VCPMI63 + Chowan'){SCI <- VCPMI63calculation(bugTraits,exclusionMath,vmast) %>%
+    mutate(SCI = 'VCPMI63 + Chowan',
            `SCI Threshold` = 40) %>% 
     rename("SCI Score" ="CPMI63+CHOWAN")}
-  if(SCIchoice == 'VCPMI - 65'){SCI <- VCPMI65calculation(bugTraits,exclusionMath,vmast) %>%
-    mutate(SCI = 'VCPMI - 65',
+  if(SCIchoice == 'VCPMI65 - Chowan'){SCI <- VCPMI65calculation(bugTraits,exclusionMath,vmast) %>%
+    mutate(SCI = 'VCPMI65 - Chowan',
            `SCI Threshold` = 40) %>% 
     rename("SCI Score" ="CPMI65-CHOWAN")}
   
@@ -502,7 +502,7 @@ BSAbenthicOutputFunction <- function(SCIchoice, SCIresults, WQM_Station_Full){
                            `Fam%Scrap` = `%FamilyScraper`, `%Chiro`, `Fam%2Dom` = `Family %2 Dominant`, FamHBI = `Family HBI`, `%Ephem Score`,
                            `%PT-H Score`, Season, Year, `Fam Richness Score`, `%Chironomidae Score`, `Fam EPT Score`, `Fam %Scraper Score`, `Fam %2Dom Score`,
                            `Fam %MFBI Score`, `Fam SCI` = `SCI Score`)) }
-  if(SCIchoice == 'VCPMI + 63'){
+  if(SCIchoice == 'VCPMI63 + Chowan'){
     return(SCIresults %>% 
              left_join(dplyr::select(WQM_Station_Full, StationID = STATION_ID, StreamName = WQM_STA_STREAM_NAME, DEQREG = WQM_STA_REC_CODE,
                                      Basin = WQS_BASIN_CODE, EcoregionCode = EPA_ECO_US_L3CODE, Ecoregion = EPA_ECO_US_L3NAME, 
@@ -516,7 +516,7 @@ BSAbenthicOutputFunction <- function(SCIchoice, SCIresults, WQM_Station_Full){
                            RepNum, TotTaxa = `Family Total Taxa`, HBI = `Family HBI`, EPTTax = `Family EPT Taxa`, `%Ephem`,	`%PT - Hydropsychidae`,
                            `%5Dom` = `Family %5 Dominant`, `%ClngP-HS`, `Richness Score`, RichnessFinal = `Richness Final`, HBIScore = `HBI Score`, HBIFinal = `HBI Final`,
                            `EPT Score`, EPTFinal = `EPT Final`, EPHEM, `PT-H`, `Pct5DOM`, `PctClng-HS`, `CPMI63+CHOWAN` = `SCI Score`) ) }
-  if(SCIchoice == 'VCPMI - 65'){
+  if(SCIchoice == 'VCPMI65 - Chowan'){
     return(SCIresults %>% 
              left_join(dplyr::select(WQM_Station_Full, StationID = STATION_ID, StreamName = WQM_STA_STREAM_NAME, DEQREG = WQM_STA_REC_CODE,
                                      Basin = WQS_BASIN_CODE, EcoregionCode = EPA_ECO_US_L3CODE, Ecoregion = EPA_ECO_US_L3NAME, 
@@ -532,7 +532,7 @@ BSAbenthicOutputFunction <- function(SCIchoice, SCIresults, WQM_Station_Full){
                            HBIFinal = `HBI Final`, `EPT Score`, EPTFinal = `EPT Final`, EPHEM, `PT-H`, PctScrap, `PctClng-HS`, 
                            `CPMI65-CHOWAN` = `SCI Score`) ) }
 }
-#BSAbenthicOutputFunction(SCIchoice = 'VCPMI - 65', SCIresults, WQM_Station_Full_REST)
+#BSAbenthicOutputFunction(SCIchoice = 'VCPMI65 - Chowan', SCIresults, WQM_Station_Full_REST)
 
 
 ### BSA habitat output

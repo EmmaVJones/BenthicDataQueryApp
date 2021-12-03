@@ -37,7 +37,7 @@ shinyUI(fluidPage(tags$head(
                                         tabPanel("Benthic Data",
                                                  sidebarPanel(
                                                    uiOutput('dateRange_'),
-                                                   radioButtons('SCIchoice', "SCI Choice", choices = c('VSCI', 'VCPMI + 63', 'VCPMI - 65')),
+                                                   radioButtons('SCIchoice', "SCI Choice", choices = c('VSCI', 'VCPMI63 + Chowan', 'VCPMI65 - Chowan')),
                                                    #helpText("Or we could run SCI by ecoregion location???"),
                                                    checkboxInput('rarifiedFilter', "Only Include Target Count = 110", value=TRUE),
                                                    checkboxInput('boatableFilter', "Only Include Wadeable Methods", value=TRUE),
@@ -261,7 +261,7 @@ shinyUI(fluidPage(tags$head(
                                                               helpText('The above SCI results are recommended based on station location (Level III Ecoregion) information.
                                                                        If users need to adjust the SCI used based on best professional judgement, the table below allows
                                                                        users to see additional SCI scores.'),
-                                                              selectInput('sciChanger', 'SCI Choice', choices = c('VSCI', 'VCPMI + 63', 'VCPMI - 65')),
+                                                              selectInput('sciChanger', 'SCI Choice', choices = c('VSCI', 'VCPMI63 + Chowan', 'VCPMI65 - Chowan')),
                                                               DT::dataTableOutput('SCIresultsAdjusted')),
                                                      tabPanel('Raw Data Download Formats',
                                                               tabsetPanel(

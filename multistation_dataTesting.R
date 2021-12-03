@@ -30,15 +30,17 @@ queryType <- 'Manually Specify Stations'#'Spatial Filters' #Interactive Selectio
 
 # manually specify troubleshooting
 manualSelection1 <- c('4AROA219.08','4AROA218.11','4AROA217.38', '4AROA216.75')#c('1BSMT001.53','1BSMT006.62','1BSMT009.08')#1AFOU002.06')
+#manualSelection1 <- read_excel('C:/Users/wmu43954/Downloads/Biostations_AllFORX.xlsx', sheet = 'Full list') %>% distinct(StationID) %>% drop_na() %>% pull() %>% toupper()
 WQM_Stations_Filter <- filter(benSampsStations, StationID %in% as.character(manualSelection1))  
 # skip down to multistationInfoFin
 
+#manualSelection1[! manualSelection1 %in% WQM_Stations_Filter$StationID]
 
 
 
 # Spatial filters troubleshooting
 ### begin
-assessmentRegionFilter <- c("NRO","PRO")#NULL#c("PRO")#unique(subbasins$ASSESS_REG)
+assessmentRegionFilter <- c("PRO")#NULL#c("PRO")#unique(subbasins$ASSESS_REG)
 subbasinFilter <- NULL#"James River - Middle"#NULL# c("York")#"James River - Middle",'Potomac River')#NULL# c("James River - Middle",'Potomac River')#NULL#"James River - Lower"
 #filter(subbasins, ASSESS_REG %in% assessmentRegionFilter) %>%
 #  distinct(SUBBASIN) %>% st_drop_geometry() %>%  pull()
@@ -48,9 +50,9 @@ VAHU6Filter <- NULL#'JU11'#NULL
 #  left_join(st_drop_geometry(assessmentLayer), by=c('SubbasinVAHU6code'='VAHUSB') ) %>%
 #  distinct(VAHU6) %>% pull()
 ecoregionFilter <- NULL#"Blue Ridge"#unique(ecoregion$US_L3NAME)
-ecoregionLevel4Filter <- 'Triassic Lowlands'# NULL#"Blue Ridge"#unique(ecoregion$US_L3NAME)
+ecoregionLevel4Filter <- NULL#'Triassic Lowlands'# NULL#"Blue Ridge"#unique(ecoregion$US_L3NAME)
 countyFilter <- NULL#"Amelia"#
-dateRange_multistation <- c(as.Date('2018-01-01'), as.Date(Sys.Date()- 7))
+dateRange_multistation <- c(as.Date('2019-01-01'), as.Date(Sys.Date()- 7))
 
 WQM_Stations_Filter <- benSampsStations %>%
   left_join(WQM_Stations_Spatial, by = 'StationID') %>% 
@@ -186,6 +188,8 @@ benSamps_Filter <- filter(benSamps, StationID %in% multistationSelection$Sta_Id)
   left_join(dplyr::select(WQM_Station_Full, WQM_STA_ID, EPA_ECO_US_L3NAME, EPA_ECO_US_L3CODE) %>%
               distinct(WQM_STA_ID, .keep_all = T),
             by = c("StationID" = "WQM_STA_ID")) %>%
+  # bring in basin info
+  left_join(dplyr::select(WQM_Stations_Spatial, StationID, Basin = Basin_Code)) %>% 
   # filter by user decisions
   {if(multistationRarifiedFilter)
     filter(., grepl( 'R110', BenSampID))
@@ -198,6 +202,7 @@ benSamps_Filter <- filter(benSamps, StationID %in% multistationSelection$Sta_Id)
 dateRange_benSamps_multistation <- c(as.Date(min(benSamps_Filter$`Collection Date`)), #as.Date('2014-01-01'), 
                                      as.Date(max(benSamps_Filter$`Collection Date`)))# c(as.Date('2016-01-01'), as.Date(Sys.Date()- 7))
 benSamps_Filter_UserFilter <- filter(benSamps_Filter, `Collection Date` >= dateRange_benSamps_multistation[1] & `Collection Date` <= dateRange_benSamps_multistation[2])
+
 
 # WQM_Station_Full missing Ecoregion info in some places so need to spatially join some
 if(nrow(filter(benSamps_Filter_UserFilter, is.na(EPA_ECO_US_L3CODE))) > 0){
@@ -240,9 +245,9 @@ habValues_Filter <- filter(habValues, HabSampID %in% habSamps_Filter$HabSampID)
 
 SCI_filter <- filter(VSCIresults, BenSampID %in% filter(benSamps_Filter_fin, ! EPA_ECO_US_L3CODE %in% c(63,65))$BenSampID) %>%
   bind_rows(
-    filter(VCPMI63results, BenSampID %in% filter(benSamps_Filter_fin,  EPA_ECO_US_L3CODE %in% c(63))$BenSampID)  ) %>%
+    filter(VCPMI63results, BenSampID %in% filter(benSamps_Filter_fin,  EPA_ECO_US_L3CODE %in% c(63) | str_detect(Basin, "Chowan"))$BenSampID)  ) %>%
   bind_rows(
-    filter(VCPMI65results, BenSampID %in% filter(benSamps_Filter_fin,  EPA_ECO_US_L3CODE %in% c(65))$BenSampID)  ) %>%
+    filter(VCPMI65results, BenSampID %in% filter(benSamps_Filter_fin,  EPA_ECO_US_L3CODE %in% c(65) & !str_detect(Basin, "Chowan"))$BenSampID)  ) %>%
   mutate(SeasonGradient = as.factor(paste0(Season, " (",Gradient,")")),
          SeasonGradientColor = case_when(SeasonGradient == "Spring (Riffle)" ~  "#66C2A5",
                                          SeasonGradient == "Spring (Boatable)" ~  "#66C2A5",
@@ -304,7 +309,7 @@ benthics_FilterFamily <- filter(benthics, BenSampID %in% benSamps_Filter_fin$Ben
 
 
 ## BSA benthics output
-BSAbenthicOutputFunction(SCIchoice = 'VCPMI - 65', SCI_filter, WQM_Station_Full) %>% distinct(BenSampID, .keep_all = T)
+BSAbenthicOutputFunction(SCIchoice = 'VCPMI65 - Chowan', SCI_filter, WQM_Station_Full) %>% distinct(BenSampID, .keep_all = T)
 BSAbenthicOutputFunction(SCIchoice = 'VSCI', SCI_filter, WQM_Station_Full)
 
 
