@@ -29,7 +29,7 @@ queryType <- 'Manually Specify Stations'#'Spatial Filters' #Interactive Selectio
 
 
 # manually specify troubleshooting
-manualSelection1 <- c('4AROA219.08','4AROA218.11','4AROA217.38', '4AROA216.75')#c('1BSMT001.53','1BSMT006.62','1BSMT009.08')#1AFOU002.06')
+manualSelection1 <- c("1ABAR052.96", '1AISC004.64', '1AOPE028.72')#c('4AROA219.08','4AROA218.11','4AROA217.38', '4AROA216.75')#c('1BSMT001.53','1BSMT006.62','1BSMT009.08')#1AFOU002.06')
 #manualSelection1 <- read_excel('C:/Users/wmu43954/Downloads/Biostations_AllFORX.xlsx', sheet = 'Full list') %>% distinct(StationID) %>% drop_na() %>% pull() %>% toupper()
 WQM_Stations_Filter <- filter(benSampsStations, StationID %in% as.character(manualSelection1))  
 # skip down to multistationInfoFin
@@ -52,7 +52,7 @@ VAHU6Filter <- NULL#'JU11'#NULL
 ecoregionFilter <- NULL#"Blue Ridge"#unique(ecoregion$US_L3NAME)
 ecoregionLevel4Filter <- NULL#'Triassic Lowlands'# NULL#"Blue Ridge"#unique(ecoregion$US_L3NAME)
 countyFilter <- NULL#"Amelia"#
-dateRange_multistation <- c(as.Date('2019-01-01'), as.Date(Sys.Date()- 7))
+dateRange_multistation <- c(as.Date('2017-01-01'), as.Date(Sys.Date()- 7))
 
 WQM_Stations_Filter <- benSampsStations %>%
   left_join(WQM_Stations_Spatial, by = 'StationID') %>% 
@@ -178,7 +178,7 @@ CreateWebMap(maps = c("Topo","Imagery","Hydrography"), collapsed = TRUE,
 # stations to be used
 WQM_Stations_Filter
 
-multistationRarifiedFilter <- FALSE#TRUE
+multistationRarifiedFilter <- TRUE#FALSE#TRUE
 multistationRepFilter <- NULL#c('1')
 
 # filter BenSamps & HabSamps to the stations selected and date range
@@ -189,7 +189,8 @@ benSamps_Filter <- filter(benSamps, StationID %in% multistationSelection$Sta_Id)
               distinct(WQM_STA_ID, .keep_all = T),
             by = c("StationID" = "WQM_STA_ID")) %>%
   # bring in basin info
-  left_join(dplyr::select(WQM_Stations_Spatial, StationID, Basin = Basin_Code)) %>% 
+  left_join(dplyr::select(WQM_Stations_Spatial, StationID, Basin = Basin_Code) %>% 
+              distinct(StationID, .keep_all= T)) %>% 
   # filter by user decisions
   {if(multistationRarifiedFilter)
     filter(., grepl( 'R110', BenSampID))

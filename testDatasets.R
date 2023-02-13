@@ -30,7 +30,7 @@ onStop(function() {
 })
 
 
-station <- '4AROA216.75' # '5ACHP002.03'#'2-CRL001.83'#'4AROA198.08'#'1AFOU002.06'#'2-JKS023.61'#'2-SPC002.12'#"IR2019V2151A"#"1ASAN001.45"#"1ASAN000.34"#'2-JKS023.61'
+station <- 'IR307316A'#'4ALRO0010.18'#'4AROA216.75' # '5ACHP002.03'#'2-CRL001.83'#'4AROA198.08'#'1AFOU002.06'#'2-JKS023.61'#'2-SPC002.12'#"IR2019V2151A"#"1ASAN001.45"#"1ASAN000.34"#'2-JKS023.61'
 
 masterTaxaGenus <- pool %>% tbl(in_schema("wqm",  "Edas_Benthic_Master_Taxa_View")) %>%
   as_tibble() %>%
@@ -58,14 +58,44 @@ masterTaxaGenus <- pool %>% tbl(in_schema("wqm",  "Edas_Benthic_Master_Taxa_View
                 Genus, Species, `Final VA Family ID`, FinalID, TolVal, FFG, 
                 Habit, FamFFG, FamTolVal, FamHabit) # keep EDAS Master Taxa list names
 
-# Used to pull data directly from REST service until it suddenly stopped working for the server
+# # Used to pull data directly from REST service until it suddenly stopped working for the server
+# WQM_Station_Full_REST <- suppressWarnings(
+#   geojson_sf(
+#     paste0("https://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%27",
+#            toupper(station),"%27&outFields=*&f=geojson"))) %>%
+#   mutate(WQM_YRS_YEAR = ifelse(!is.na(WQM_YRS_YEAR), lubridate::year(as.Date(as.POSIXct(WQM_YRS_YEAR/1000, origin="1970-01-01"))), NA)) 
+
 WQM_Station_Full_REST <- suppressWarnings(
   geojson_sf(
-    paste0("https://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%27",
-           toupper(station),"%27&outFields=*&f=geojson"))) %>%
-  mutate(WQM_YRS_YEAR = ifelse(!is.na(WQM_YRS_YEAR), lubridate::year(as.Date(as.POSIXct(WQM_YRS_YEAR/1000, origin="1970-01-01"))), NA)) 
+    paste0("http://apps.deq.virginia.gov/arcgis/rest/services/public/WQM_STATIONS_ALL/MapServer/0/query?&where=STATION_ID%3D%27",
+           #"http://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%27",
+           toupper(station),"%27&outFields=*&f=geojson")))
 
-
+if(nrow(WQM_Station_Full_REST ) > 0){
+  WQM_Station_Full_REST <- mutate(WQM_Station_Full_REST, WQM_YRS_YEAR = ifelse(!is.na(WQM_YRS_YEAR), lubridate::year(as.Date(as.POSIXct(WQM_YRS_YEAR/1000, origin="1970-01-01"))), NA))
+  WQM_Station_Full_REST <- bind_cols(WQM_Station_Full_REST, st_coordinates(WQM_Station_Full_REST) %>% as.tibble()) %>%
+    mutate(Latitude = Y, Longitude = X) # add lat/lng in DD
+} else { # station doesn't yet exist in WQM full dataset
+  # get what we can from CEDS
+  stationGISInfo <- pool %>% tbl( in_schema("wqm",  "WQM_Sta_GIS_View")) %>%
+    filter(Station_Id %in% !! toupper(station)) %>%
+    as_tibble() 
+  # pull a known station to steal data structure
+  WQM_Station_Full_REST <- suppressWarnings(
+    geojson_sf(
+      paste0("http://apps.deq.virginia.gov/arcgis/rest/services/public/WQM_STATIONS_ALL/MapServer/0/query?&where=STATION_ID%3D%272-JKS023.61%27&outFields=*&f=geojson")))[1,] %>%
+    #"http://gis.deq.virginia.gov/arcgis/rest/services/staff/DEQInternalDataViewer/MapServer/104/query?&where=STATION_ID%3D%272-JKS023.61%27&outFields=*&f=geojson")))[1,] %>%
+    mutate(WQM_YRS_YEAR = ifelse(!is.na(WQM_YRS_YEAR), lubridate::year(as.Date(as.POSIXct(WQM_YRS_YEAR/1000, origin="1970-01-01"))), NA)) %>%
+    st_drop_geometry()
+  WQM_Station_Full_REST <- bind_rows(WQM_Station_Full_REST[0,],
+                                     tibble(STATION_ID = stationGISInfo$Station_Id, 
+                                            Latitude = stationGISInfo$Latitude,
+                                            Longitude = stationGISInfo$Longitude,
+                                            BASINS_HUC_8_NAME = stationGISInfo$Huc6_Huc_8_Name, 
+                                            BASINS_VAHU6 = stationGISInfo$Huc6_Vahu6) ) %>%
+    st_as_sf(coords = c("Longitude", "Latitude"),  # make spatial layer using these columns
+             remove = F, # don't remove these lat/lon cols from df
+             crs = 4326)    }
 
 
 

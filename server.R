@@ -1219,7 +1219,8 @@ shinyServer(function(input, output, session) {
                     distinct(WQM_STA_ID, .keep_all = T),
                   by = c("StationID" = "WQM_STA_ID")) %>%
         # bring in basin info
-        left_join(dplyr::select(WQM_Stations_Spatial, StationID, Basin = Basin_Code)) %>% 
+        left_join(dplyr::select(WQM_Stations_Spatial, StationID, Basin = Basin_Code) %>% 
+                    distinct(StationID, .keep_all = T)) %>% 
         # filter by user decisions
         {if(input$multistationRarifiedFilter)
           filter(.,  `Target Count` == 110)

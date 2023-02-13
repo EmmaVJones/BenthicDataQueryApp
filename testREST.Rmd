@@ -3,6 +3,8 @@ title: "test geojson"
 author: "Emma Jones"
 date: "1/20/2021"
 output: html_document
+resource_files:
+- config.yml
 ---
 
 ```{r setup, include=FALSE}
